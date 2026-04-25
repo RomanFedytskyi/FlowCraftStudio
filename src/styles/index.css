@@ -1,0 +1,204 @@
+@config "../../tailwind.config.ts";
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --color-background: #f8fafc;
+  --color-background-subtle: #f1f5f9;
+  --color-background-elevated: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-surface-hover: #f1f5f9;
+  --color-surface-selected: #eef2ff;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-subtle: #94a3b8;
+  --color-text-inverse: #ffffff;
+  --color-primary: #4f46e5;
+  --color-primary-hover: #4338ca;
+  --color-primary-soft: color-mix(in srgb, var(--color-primary) 12%, white);
+  --color-primary-text: #3730a3;
+  --color-accent: #7c3aed;
+  --color-accent-hover: #6d28d9;
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 12%, white);
+  --color-accent-text: #5b21b6;
+  --color-success: #10b981;
+  --color-success-soft: color-mix(in srgb, var(--color-success) 14%, white);
+  --color-success-text: #047857;
+  --color-warning: #f59e0b;
+  --color-warning-soft: color-mix(in srgb, var(--color-warning) 18%, white);
+  --color-warning-text: #92400e;
+  --color-danger: #ef4444;
+  --color-danger-soft: color-mix(in srgb, var(--color-danger) 16%, white);
+  --color-danger-text: #b91c1c;
+  --color-canvas: #ffffff;
+  --color-canvas-grid: #e2e8f0;
+  --color-canvas-node: #ffffff;
+  --color-canvas-nodeBorder: #cbd5e1;
+  --color-canvas-edge: #64748b;
+  --color-canvas-selection: var(--color-primary);
+
+  --gradient-primary: linear-gradient(135deg, #4f46e5, #7c3aed);
+}
+
+html {
+  color-scheme: light;
+  /* ~-20% for rem-based spacing, typography, and most Tailwind utilities */
+  font-size: 80%;
+}
+
+#root {
+  font-size: inherit;
+}
+
+html.dark {
+  color-scheme: dark;
+  --color-background: #0f172a;
+  --color-background-subtle: #0b1220;
+  --color-background-elevated: #1e293b;
+  --color-surface: #111c33;
+  --color-surface-muted: #0b1220;
+  --color-surface-hover: #1e293b;
+  --color-surface-selected: #1e3a5f;
+  --color-border: #334155;
+  --color-border-strong: #475569;
+  --color-text: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-text-subtle: #64748b;
+  --color-text-inverse: #0f172a;
+  --color-primary: #8b5cf6;
+  --color-primary-hover: #a78bfa;
+  --color-primary-soft: color-mix(
+    in srgb,
+    var(--color-primary) 22%,
+    transparent
+  );
+  --color-primary-text: #ddd6fe;
+  --color-accent: #a78bfa;
+  --color-accent-hover: #c4b5fd;
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  --color-accent-text: #ede9fe;
+  --color-success: #10b981;
+  --color-success-soft: color-mix(
+    in srgb,
+    var(--color-success) 18%,
+    transparent
+  );
+  --color-success-text: #a7f3d0;
+  --color-warning: #f59e0b;
+  --color-warning-soft: color-mix(
+    in srgb,
+    var(--color-warning) 22%,
+    transparent
+  );
+  --color-warning-text: #fde68a;
+  --color-danger: #fb7185;
+  --color-danger-soft: color-mix(in srgb, var(--color-danger) 18%, transparent);
+  --color-danger-text: #fecdd3;
+  --color-canvas: #0b1220;
+  --color-canvas-grid: #334155;
+  --color-canvas-node: #1e293b;
+  --color-canvas-nodeBorder: #475569;
+  --color-canvas-edge: #94a3b8;
+  --color-canvas-selection: #60a5fa;
+
+  --gradient-primary: linear-gradient(135deg, #8b5cf6, #a78bfa);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+::selection {
+  background-color: color-mix(in srgb, var(--color-primary) 28%, transparent);
+}
+
+html.dark ::selection {
+  background-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.flowcraft-canvas .react-flow__renderer {
+  background-color: var(--color-canvas);
+}
+
+.flowcraft-canvas .react-flow__background pattern {
+  stroke: var(--color-canvas-grid);
+}
+
+.flowcraft-canvas .react-flow__node {
+  /* Node visuals are rendered by our custom `FlowNode` component. */
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  color: inherit;
+  box-shadow: none;
+}
+
+.flowcraft-canvas .react-flow__node.selected,
+.flowcraft-canvas .react-flow__node:focus,
+.flowcraft-canvas .react-flow__node:focus-visible {
+  border-color: transparent;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.flowcraft-canvas .react-flow__edge-path {
+  stroke: var(--color-canvas-edge);
+  stroke-width: 2.4;
+}
+
+.flowcraft-canvas .react-flow__connection-path {
+  stroke: var(--color-primary);
+  stroke-width: 3;
+}
+
+.flowcraft-canvas .react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--color-canvas-selection);
+}
+
+.flowcraft-canvas .react-flow__controls,
+.flowcraft-canvas .react-flow__minimap {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.flowcraft-canvas .react-flow__controls-button {
+  border-bottom-color: var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.flowcraft-canvas .react-flow__controls-button:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.flowcraft-canvas .react-flow__controls-button svg {
+  width: 1.65rem;
+  height: 1.65rem;
+}
