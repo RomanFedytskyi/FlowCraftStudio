@@ -133,9 +133,6 @@ export const ShapePrimitiveNode = memo(function ShapePrimitiveNode({
 
   const pathD = useMemo(() => getShapePath(kind), [kind]);
 
-  const patch = (patchData: Partial<DiagramNodeData>) =>
-    flowData.onPatchData?.(id, patchData);
-
   return (
     <div
       className="relative"
