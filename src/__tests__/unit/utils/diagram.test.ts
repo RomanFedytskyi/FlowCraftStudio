@@ -8,6 +8,8 @@ import {
   duplicateEdges,
   duplicateNodes,
   groupNodes,
+  nextQuickBackgroundStyle,
+  nextQuickFillStyle,
   pushHistory,
   redoHistory,
   searchDiagramNodes,
@@ -157,5 +159,29 @@ describe('diagram utils', () => {
         label: 'API Gateway',
       },
     ]);
+  });
+
+  it('nextQuickFillStyle toggles fill for primitive shapes (fill wins over background)', () => {
+    expect(nextQuickFillStyle({ fillColor: 'transparent' })).toEqual({
+      fillColor: 'primary-soft',
+    });
+    expect(nextQuickFillStyle({ fillColor: 'primary-soft' })).toEqual({
+      fillColor: 'transparent',
+    });
+    expect(
+      nextQuickFillStyle({
+        fillColor: 'transparent',
+        backgroundColor: 'primary-soft',
+      }),
+    ).toEqual({ fillColor: 'primary-soft' });
+  });
+
+  it('nextQuickBackgroundStyle toggles card background', () => {
+    expect(nextQuickBackgroundStyle({})).toEqual({
+      backgroundColor: 'primary-soft',
+    });
+    expect(
+      nextQuickBackgroundStyle({ backgroundColor: 'primary-soft' }),
+    ).toEqual({ backgroundColor: 'transparent' });
   });
 });

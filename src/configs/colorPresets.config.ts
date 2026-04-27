@@ -16,3 +16,18 @@ export const NODE_COLOR_PRESETS = [
   '#dc2626',
   '#7c3aed',
 ] as const;
+
+/**
+ * Defaults for the on-canvas palette button (subset of NODE_COLOR_PRESETS plus
+ * transparent). Hex strings may repeat NODE_COLOR_PRESETS entries.
+ */
+export const TOOLBAR_QUICK_FILL_SWATCHES = [
+  'transparent',
+  '#dbeafe',
+  '#dcfce7',
+  '#fef9c3',
+  '#fee2e2',
+  '#ede9fe',
+  '#ffffff',
+  '#2563eb',
+] as const;

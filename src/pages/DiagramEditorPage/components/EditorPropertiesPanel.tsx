@@ -33,6 +33,7 @@ import type {
   DiagramNode,
   DiagramNodeData,
   DiagramNodeStyle,
+  HelperFontWeight,
 } from '../../../types/diagram';
 
 export interface EditorPropertiesPanelProps {
@@ -42,7 +43,7 @@ export interface EditorPropertiesPanelProps {
   onChangeNodeLabel: (label: string) => void;
   onChangeNodeStyle: (style: DiagramNodeStyle) => void;
   onChangeNodeTags: (tags: string[]) => void;
-  onChangeNodeIcon: (icon?: string) => void;
+  onChangeNodeIcon: (icon: string | null | undefined) => void;
   onChangeNodeBadgeLabel: (value: string | undefined) => void;
   onPatchNodeData: (patch: Partial<DiagramNodeData>) => void;
   onChangeEdgeLabel: (label: string) => void;
@@ -240,15 +241,18 @@ function TabBar<T extends string>({
   tabs,
   active,
   onChange,
+  testId = 'properties-tab-list',
 }: {
   tabs: Array<{ id: T; label: string }>;
   active: T;
   onChange: (id: T) => void;
+  testId?: string;
 }) {
   return (
     <div
       className="flex gap-1 rounded-xl border border-border bg-surface-muted p-1"
       role="tablist"
+      data-testid={testId}
     >
       {tabs.map((tab) => (
         <button
@@ -302,9 +306,14 @@ export function EditorPropertiesPanel({
     const definition = getNodeDefinition(selectedNode.data.type);
     const nodeType = selectedNode.data.type;
     const isPrimitiveShape = nodeType.startsWith('shape-');
-    const labelLength = selectedNode.data.label.length;
+    const isHelper = nodeType === 'helper';
+    const labelLength = String(selectedNode.data.label ?? '').length;
     const showsNodeTitleField =
-      definition.kind !== 'note' && selectedNode.data.type !== 'text';
+      !isPrimitiveShape &&
+      definition.kind !== 'note' &&
+      selectedNode.data.type !== 'text' &&
+      selectedNode.data.type !== 'helper' &&
+      selectedNode.data.type !== 'group';
     const panelTitle =
       typeof selectedNode.data.badgeLabel === 'string' &&
       selectedNode.data.badgeLabel.length > 0
@@ -320,10 +329,16 @@ export function EditorPropertiesPanel({
           <p className="text-xs font-medium uppercase tracking-[0.24em] text-text-subtle">
             Properties
           </p>
-          <h3 className="mt-2 text-lg font-semibold text-text">{panelTitle}</h3>
+          <h3
+            className="mt-2 text-lg font-semibold text-text"
+            data-testid="properties-selected-node-heading"
+          >
+            {panelTitle}
+          </h3>
         </div>
 
         <TabBar
+          testId="properties-node-tab-list"
           tabs={[
             { id: 'content', label: 'Content' },
             { id: 'style', label: 'Style' },
@@ -353,6 +368,22 @@ export function EditorPropertiesPanel({
                 <p className="text-xs text-text-muted">
                   Shown on the canvas chip. Leave empty to use the default type
                   name ({definition.label}).
+                </p>
+              </LabeledField>
+            ) : null}
+            {isPrimitiveShape ? (
+              <LabeledField label="Text inside shape">
+                <textarea
+                  value={selectedNode.data.label}
+                  onChange={(event) => onChangeNodeLabel(event.target.value)}
+                  placeholder="Optional — centered on the shape"
+                  spellCheck={false}
+                  className="min-h-24 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text"
+                  data-testid="properties-shape-text-input"
+                />
+                <p className="text-xs text-text-muted">
+                  {labelLength} character{labelLength === 1 ? '' : 's'}. Leave
+                  empty for a plain shape.
                 </p>
               </LabeledField>
             ) : null}
@@ -640,7 +671,9 @@ export function EditorPropertiesPanel({
             {nodeType !== 'custom-input' &&
             nodeType !== 'counter' &&
             nodeType !== 'architecture' &&
-            nodeType !== 'svg-shape' ? (
+            nodeType !== 'svg-shape' &&
+            nodeType !== 'group' &&
+            !isPrimitiveShape ? (
               <LabeledField label="Text">
                 <textarea
                   value={selectedNode.data.label}
@@ -658,7 +691,248 @@ export function EditorPropertiesPanel({
 
         {nodeTab === 'style' ? (
           <div className="space-y-5">
-            {nodeType !== 'circle-compact' && !isPrimitiveShape ? (
+            {isHelper ? (
+              <>
+                <LabeledField label="Text color">
+                  <ColorInput
+                    value={
+                      selectedNode.data.style?.textColor?.trim() ?? '#0f172a'
+                    }
+                    onChange={(textColor) =>
+                      onChangeNodeStyle({
+                        ...selectedNode.data.style,
+                        textColor,
+                      })
+                    }
+                    onClear={() =>
+                      onChangeNodeStyle({
+                        ...selectedNode.data.style,
+                        textColor: undefined,
+                      })
+                    }
+                    testId="properties-helper-text-color"
+                    showPresets
+                  />
+                </LabeledField>
+                <LabeledField label="Font size">
+                  <Input
+                    type="number"
+                    min={8}
+                    max={96}
+                    value={selectedNode.data.style?.fontSize ?? 16}
+                    onChange={(event) =>
+                      onChangeNodeStyle({
+                        ...selectedNode.data.style,
+                        fontSize: Number(event.target.value),
+                      })
+                    }
+                    data-testid="properties-helper-font-size"
+                  />
+                </LabeledField>
+                <LabeledField label="Font weight">
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        'normal',
+                        'medium',
+                        'semibold',
+                        'bold',
+                      ] as HelperFontWeight[]
+                    ).map((fw) => {
+                      const active =
+                        (selectedNode.data.style?.fontWeight ?? 'normal') ===
+                        fw;
+                      return (
+                        <button
+                          key={fw}
+                          type="button"
+                          className={
+                            active
+                              ? 'flex-1 rounded-lg bg-surface px-3 py-2 text-xs font-semibold text-text shadow-soft'
+                              : 'flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-text-muted transition hover:bg-surface-hover hover:text-text'
+                          }
+                          onClick={() =>
+                            onChangeNodeStyle({
+                              ...selectedNode.data.style,
+                              fontWeight: fw,
+                            })
+                          }
+                          data-testid={`properties-helper-font-weight-${fw}`}
+                        >
+                          {fw}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </LabeledField>
+                <LabeledField label="Text alignment">
+                  <div className="flex gap-2">
+                    {(['left', 'center', 'right'] as const).map((align) => {
+                      const active =
+                        (selectedNode.data.style?.textAlign ?? 'left') ===
+                        align;
+                      return (
+                        <button
+                          key={align}
+                          type="button"
+                          className={
+                            active
+                              ? 'flex-1 rounded-lg bg-surface px-3 py-2 text-xs font-semibold text-text shadow-soft'
+                              : 'flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-text-muted transition hover:bg-surface-hover hover:text-text'
+                          }
+                          onClick={() =>
+                            onChangeNodeStyle({
+                              ...selectedNode.data.style,
+                              textAlign: align,
+                            })
+                          }
+                          data-testid={`properties-helper-align-${align}`}
+                        >
+                          {align}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </LabeledField>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-text">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-border"
+                    checked={Boolean(
+                      selectedNode.data.style?.backgroundEnabled,
+                    )}
+                    onChange={(event) => {
+                      const on = event.target.checked;
+                      const prev = selectedNode.data.style ?? {};
+                      onChangeNodeStyle({
+                        ...prev,
+                        backgroundEnabled: on,
+                        ...(on &&
+                        (!prev.backgroundColor ||
+                          prev.backgroundColor === 'transparent')
+                          ? { backgroundColor: 'rgba(30, 41, 59, 0.6)' }
+                          : {}),
+                      });
+                    }}
+                    data-testid="properties-helper-bg-enabled"
+                  />
+                  Background
+                </label>
+                {selectedNode.data.style?.backgroundEnabled ? (
+                  <LabeledField label="Background color">
+                    <ColorInput
+                      value={resolveNodeBackgroundColor(
+                        selectedNode.data.style?.backgroundColor,
+                      )}
+                      onChange={(backgroundColor) =>
+                        onChangeNodeStyle({
+                          ...selectedNode.data.style,
+                          backgroundColor,
+                        })
+                      }
+                      onClear={() =>
+                        onChangeNodeStyle({
+                          ...selectedNode.data.style,
+                          backgroundColor: 'transparent',
+                        })
+                      }
+                      testId="properties-helper-bg-color"
+                      showPresets
+                    />
+                  </LabeledField>
+                ) : null}
+                <LabeledField label="Opacity">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={selectedNode.data.style?.opacity ?? 1}
+                    onChange={(event) =>
+                      onChangeNodeStyle({
+                        ...selectedNode.data.style,
+                        opacity: Number(event.target.value),
+                      })
+                    }
+                    data-testid="properties-helper-opacity"
+                  />
+                </LabeledField>
+                <LabeledField label="Width">
+                  <Input
+                    type="number"
+                    min={80}
+                    max={2000}
+                    value={selectedNode.data.style?.width ?? ''}
+                    onChange={(event) => {
+                      const raw = event.target.value;
+                      onChangeNodeStyle({
+                        ...selectedNode.data.style,
+                        width:
+                          raw === '' ? undefined : Math.max(80, Number(raw)),
+                      });
+                    }}
+                    data-testid="properties-helper-width"
+                  />
+                </LabeledField>
+                <LabeledField label="Height">
+                  <Input
+                    type="number"
+                    min={24}
+                    max={2000}
+                    value={selectedNode.data.style?.height ?? ''}
+                    onChange={(event) => {
+                      const raw = event.target.value;
+                      onChangeNodeStyle({
+                        ...selectedNode.data.style,
+                        height:
+                          raw === '' ? undefined : Math.max(24, Number(raw)),
+                      });
+                    }}
+                    data-testid="properties-helper-height"
+                  />
+                </LabeledField>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-text">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-border"
+                    checked={
+                      (selectedNode.data.style?.fontStyle ?? 'normal') ===
+                      'italic'
+                    }
+                    onChange={(event) =>
+                      onChangeNodeStyle({
+                        ...selectedNode.data.style,
+                        fontStyle: event.target.checked ? 'italic' : 'normal',
+                      })
+                    }
+                    data-testid="properties-helper-italic"
+                  />
+                  Italic
+                </label>
+                {selectedNode.data.helperType === 'small-label' ? (
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-text">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-border"
+                      checked={
+                        selectedNode.data.style?.textTransform === 'uppercase'
+                      }
+                      onChange={(event) =>
+                        onChangeNodeStyle({
+                          ...selectedNode.data.style,
+                          textTransform: event.target.checked
+                            ? 'uppercase'
+                            : 'none',
+                        })
+                      }
+                      data-testid="properties-helper-uppercase"
+                    />
+                    Uppercase (small label)
+                  </label>
+                ) : null}
+              </>
+            ) : null}
+            {!isHelper && nodeType !== 'circle-compact' && !isPrimitiveShape ? (
               <LabeledField label="Icon">
                 <IconSelectDropdown
                   value={selectedNode.data.icon}
@@ -666,128 +940,138 @@ export function EditorPropertiesPanel({
                 />
               </LabeledField>
             ) : null}
-            <LabeledField label={isPrimitiveShape ? 'Fill' : 'Background'}>
-              <ColorInput
-                value={resolveNodeBackgroundColor(
-                  selectedNode.data.style?.fillColor ??
-                    selectedNode.data.style?.backgroundColor,
-                )}
-                onChange={(backgroundColor) =>
-                  onChangeNodeStyle(
-                    isPrimitiveShape
-                      ? { fillColor: backgroundColor }
-                      : { backgroundColor },
-                  )
-                }
-                onClear={() =>
-                  onChangeNodeStyle(
-                    isPrimitiveShape
-                      ? { fillColor: 'transparent' }
-                      : { backgroundColor: 'transparent' },
-                  )
-                }
-                testId="properties-node-background-color"
-                showPresets
-              />
-            </LabeledField>
-            <LabeledField label="Border">
-              <ColorInput
-                value={resolveNodeBorderColor(
-                  selectedNode.data.style?.borderColor,
-                )}
-                onChange={(borderColor) => onChangeNodeStyle({ borderColor })}
-                onClear={() =>
-                  onChangeNodeStyle({ borderColor: 'transparent' })
-                }
-                testId="properties-node-border-color"
-                showPresets
-              />
-            </LabeledField>
-            <LabeledField label="Border width">
-              <Input
-                type="number"
-                min={0}
-                max={12}
-                value={selectedNode.data.style?.borderWidth ?? 1}
-                onChange={(event) =>
-                  onChangeNodeStyle({
-                    borderWidth: Number(event.target.value),
-                  })
-                }
-                data-testid="properties-node-border-width-input"
-              />
-            </LabeledField>
-            <LabeledField label="Border style">
-              <div className="flex gap-2">
-                {NODE_BORDER_STYLE_OPTIONS.map((option) => {
-                  const active =
-                    (selectedNode.data.style?.borderStyle ?? 'solid') ===
-                    option.id;
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      className={
-                        active
-                          ? 'flex-1 rounded-lg bg-surface px-3 py-2 text-xs font-semibold text-text shadow-soft'
-                          : 'flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-text-muted transition hover:bg-surface-hover hover:text-text'
-                      }
-                      onClick={() =>
-                        onChangeNodeStyle({ borderStyle: option.id })
-                      }
-                      data-testid={`properties-node-border-style-${option.id}`}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </LabeledField>
-            <LabeledField label="Text size">
-              <Input
-                type="number"
-                min={14}
-                max={38}
-                value={selectedNode.data.style?.fontSize ?? 17}
-                onChange={(event) =>
-                  onChangeNodeStyle({
-                    fontSize: Number(event.target.value),
-                  })
-                }
-                data-testid="properties-node-font-size-input"
-              />
-            </LabeledField>
-
-            {isPrimitiveShape ? (
+            {!isHelper ? (
               <>
-                <LabeledField label="Width">
-                  <Input
-                    type="number"
-                    min={48}
-                    max={2000}
-                    value={selectedNode.data.style?.width ?? 160}
-                    onChange={(event) =>
-                      onChangeNodeStyle({ width: Number(event.target.value) })
+                <LabeledField label={isPrimitiveShape ? 'Fill' : 'Background'}>
+                  <ColorInput
+                    value={resolveNodeBackgroundColor(
+                      selectedNode.data.style?.fillColor ??
+                        selectedNode.data.style?.backgroundColor,
+                    )}
+                    onChange={(backgroundColor) =>
+                      onChangeNodeStyle(
+                        isPrimitiveShape
+                          ? { fillColor: backgroundColor }
+                          : { backgroundColor },
+                      )
                     }
-                    data-testid="properties-shape-width"
+                    onClear={() =>
+                      onChangeNodeStyle(
+                        isPrimitiveShape
+                          ? { fillColor: 'transparent' }
+                          : { backgroundColor: 'transparent' },
+                      )
+                    }
+                    testId="properties-node-background-color"
+                    showPresets
                   />
                 </LabeledField>
-                <LabeledField label="Height">
-                  <Input
-                    type="number"
-                    min={48}
-                    max={2000}
-                    value={selectedNode.data.style?.height ?? 160}
-                    onChange={(event) =>
-                      onChangeNodeStyle({ height: Number(event.target.value) })
+                <LabeledField label="Border">
+                  <ColorInput
+                    value={resolveNodeBorderColor(
+                      selectedNode.data.style?.borderColor,
+                    )}
+                    onChange={(borderColor) =>
+                      onChangeNodeStyle({ borderColor })
                     }
-                    data-testid="properties-shape-height"
+                    onClear={() =>
+                      onChangeNodeStyle({ borderColor: 'transparent' })
+                    }
+                    testId="properties-node-border-color"
+                    showPresets
                   />
                 </LabeledField>
-                {nodeType === 'shape-circle' ? (
-                  <p className="text-xs text-text-muted">
-                    Circle keeps equal width and height.
-                  </p>
+                <LabeledField label="Border width">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={12}
+                    value={selectedNode.data.style?.borderWidth ?? 1}
+                    onChange={(event) =>
+                      onChangeNodeStyle({
+                        borderWidth: Number(event.target.value),
+                      })
+                    }
+                    data-testid="properties-node-border-width-input"
+                  />
+                </LabeledField>
+                <LabeledField label="Border style">
+                  <div className="flex gap-2">
+                    {NODE_BORDER_STYLE_OPTIONS.map((option) => {
+                      const active =
+                        (selectedNode.data.style?.borderStyle ?? 'solid') ===
+                        option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          className={
+                            active
+                              ? 'flex-1 rounded-lg bg-surface px-3 py-2 text-xs font-semibold text-text shadow-soft'
+                              : 'flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-text-muted transition hover:bg-surface-hover hover:text-text'
+                          }
+                          onClick={() =>
+                            onChangeNodeStyle({ borderStyle: option.id })
+                          }
+                          data-testid={`properties-node-border-style-${option.id}`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </LabeledField>
+                <LabeledField label="Text size">
+                  <Input
+                    type="number"
+                    min={14}
+                    max={38}
+                    value={selectedNode.data.style?.fontSize ?? 17}
+                    onChange={(event) =>
+                      onChangeNodeStyle({
+                        fontSize: Number(event.target.value),
+                      })
+                    }
+                    data-testid="properties-node-font-size-input"
+                  />
+                </LabeledField>
+
+                {isPrimitiveShape ? (
+                  <>
+                    <LabeledField label="Width">
+                      <Input
+                        type="number"
+                        min={48}
+                        max={2000}
+                        value={selectedNode.data.style?.width ?? 160}
+                        onChange={(event) =>
+                          onChangeNodeStyle({
+                            width: Number(event.target.value),
+                          })
+                        }
+                        data-testid="properties-shape-width"
+                      />
+                    </LabeledField>
+                    <LabeledField label="Height">
+                      <Input
+                        type="number"
+                        min={48}
+                        max={2000}
+                        value={selectedNode.data.style?.height ?? 160}
+                        onChange={(event) =>
+                          onChangeNodeStyle({
+                            height: Number(event.target.value),
+                          })
+                        }
+                        data-testid="properties-shape-height"
+                      />
+                    </LabeledField>
+                    {nodeType === 'shape-circle' ? (
+                      <p className="text-xs text-text-muted">
+                        Circle keeps equal width and height.
+                      </p>
+                    ) : null}
+                  </>
                 ) : null}
               </>
             ) : null}
@@ -817,10 +1101,16 @@ export function EditorPropertiesPanel({
           <p className="text-xs font-medium uppercase tracking-[0.24em] text-text-subtle">
             Connection properties
           </p>
-          <h3 className="mt-2 text-lg font-semibold text-text">Edge styling</h3>
+          <h3
+            className="mt-2 text-lg font-semibold text-text"
+            data-testid="properties-selected-edge-heading"
+          >
+            Edge styling
+          </h3>
         </div>
 
         <TabBar
+          testId="properties-edge-tab-list"
           tabs={[
             { id: 'content', label: 'Content' },
             { id: 'style', label: 'Style' },

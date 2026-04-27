@@ -43,6 +43,13 @@ export const DEFAULT_CONNECTION_RULES: ConnectionRule[] = [
       return { allowed: false, reason: 'Start cannot have incoming edges' };
     }
 
+    if (sourceType === 'helper' || targetType === 'helper') {
+      return {
+        allowed: false,
+        reason: 'Annotation helpers cannot connect to flow nodes',
+      };
+    }
+
     return { allowed: true };
   },
 ];

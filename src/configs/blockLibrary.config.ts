@@ -1,7 +1,15 @@
 import type { IconName } from './iconLibrary.config';
-import type { DiagramNodeStyle, DiagramNodeType } from '../types/diagram';
+import type {
+  DiagramNodeStyle,
+  DiagramNodeType,
+  HelperAnnotationKind,
+} from '../types/diagram';
 
-export type BlockLibraryTabId = 'blocks' | 'shapes' | 'templates';
+export type BlockLibraryTabId =
+  | 'blocks'
+  | 'annotations'
+  | 'shapes'
+  | 'templates';
 
 export interface BlockLibraryNodeItem {
   id: string;
@@ -21,6 +29,8 @@ export interface BlockLibraryNodeItem {
     badgeLabel: string;
     tags: string[];
     style: DiagramNodeStyle;
+    helperType: HelperAnnotationKind;
+    showHelperTypeBadge?: boolean;
   }>;
 }
 
@@ -195,6 +205,87 @@ export const BLOCK_LIBRARY_TABS: BlockLibraryTab[] = [
     ],
   },
   {
+    id: 'annotations',
+    label: 'Annotations',
+    items: [
+      {
+        id: 'annotation-plain-text',
+        kind: 'node',
+        tab: 'annotations',
+        nodeType: 'helper',
+        label: 'Plain Text',
+        description: 'Body copy on the canvas — auto-sized, no connectors.',
+        iconName: 'typography',
+        preview: 'Aa',
+        defaultData: {
+          label: 'Plain text',
+          helperType: 'plain-text',
+          tags: [],
+        },
+      },
+      {
+        id: 'annotation-section-title',
+        kind: 'node',
+        tab: 'annotations',
+        nodeType: 'helper',
+        label: 'Section Title',
+        description: 'Large heading for grouping areas of the diagram.',
+        iconName: 'heading',
+        preview: 'T',
+        defaultData: {
+          label: 'Section title',
+          helperType: 'section-title',
+          tags: [],
+        },
+      },
+      {
+        id: 'annotation-caption',
+        kind: 'node',
+        tab: 'annotations',
+        nodeType: 'helper',
+        label: 'Caption',
+        description: 'Smaller muted text for descriptions.',
+        iconName: 'caption',
+        preview: '¶',
+        defaultData: {
+          label: 'Caption',
+          helperType: 'caption',
+          tags: [],
+        },
+      },
+      {
+        id: 'annotation-small-label',
+        kind: 'node',
+        tab: 'annotations',
+        nodeType: 'helper',
+        label: 'Small Label',
+        description: 'Compact label — optional uppercase in Style.',
+        iconName: 'badge',
+        preview: '·',
+        defaultData: {
+          label: 'Label',
+          helperType: 'small-label',
+          tags: [],
+        },
+      },
+      {
+        id: 'annotation-callout',
+        kind: 'node',
+        tab: 'annotations',
+        nodeType: 'helper',
+        label: 'Callout Text',
+        description: 'Emphasized explanatory text.',
+        iconName: 'info',
+        preview: '!',
+        defaultData: {
+          label: 'Callout text',
+          helperType: 'callout',
+          tags: [],
+        },
+      },
+    ],
+  },
+  {
     id: 'shapes',
     label: 'Shapes',
     items: [
@@ -204,11 +295,11 @@ export const BLOCK_LIBRARY_TABS: BlockLibraryTab[] = [
         tab: 'shapes',
         nodeType: 'shape-circle',
         label: 'Circle',
-        description: 'Perfect circle primitive with centered label.',
+        description: 'Perfect circle primitive.',
         iconName: 'circle',
         preview: '◯',
         defaultData: {
-          label: 'Circle',
+          label: '',
           tags: [],
           style: { width: 160, height: 160, fillColor: 'transparent' },
         },
@@ -219,11 +310,11 @@ export const BLOCK_LIBRARY_TABS: BlockLibraryTab[] = [
         tab: 'shapes',
         nodeType: 'shape-rectangle',
         label: 'Rectangle',
-        description: 'Rectangle primitive with centered label.',
+        description: 'Rectangle primitive.',
         iconName: 'rectangle',
         preview: '▭',
         defaultData: {
-          label: 'Rectangle',
+          label: '',
           tags: [],
           style: { width: 220, height: 140, fillColor: 'transparent' },
         },
@@ -234,11 +325,11 @@ export const BLOCK_LIBRARY_TABS: BlockLibraryTab[] = [
         tab: 'shapes',
         nodeType: 'shape-rounded-rectangle',
         label: 'Rounded Rectangle',
-        description: 'Rounded rectangle primitive with centered label.',
+        description: 'Rounded rectangle primitive.',
         iconName: 'roundedRectangle',
         preview: '▢',
         defaultData: {
-          label: 'Rounded',
+          label: '',
           tags: [],
           style: { width: 220, height: 140, fillColor: 'transparent' },
         },
@@ -249,11 +340,11 @@ export const BLOCK_LIBRARY_TABS: BlockLibraryTab[] = [
         tab: 'shapes',
         nodeType: 'shape-diamond',
         label: 'Diamond',
-        description: 'Diamond primitive with centered label.',
+        description: 'Diamond primitive.',
         iconName: 'diamond',
         preview: '◇',
         defaultData: {
-          label: 'Diamond',
+          label: '',
           tags: [],
           style: { width: 190, height: 160, fillColor: 'transparent' },
         },
@@ -264,11 +355,11 @@ export const BLOCK_LIBRARY_TABS: BlockLibraryTab[] = [
         tab: 'shapes',
         nodeType: 'shape-hexagon',
         label: 'Hexagon',
-        description: 'Hexagon primitive with centered label.',
+        description: 'Hexagon primitive.',
         iconName: 'hexagon',
         preview: '⬡',
         defaultData: {
-          label: 'Hexagon',
+          label: '',
           tags: [],
           style: { width: 210, height: 150, fillColor: 'transparent' },
         },
@@ -279,11 +370,11 @@ export const BLOCK_LIBRARY_TABS: BlockLibraryTab[] = [
         tab: 'shapes',
         nodeType: 'shape-triangle',
         label: 'Triangle',
-        description: 'Triangle primitive with centered label.',
+        description: 'Triangle primitive.',
         iconName: 'triangle',
         preview: '△',
         defaultData: {
-          label: 'Triangle',
+          label: '',
           tags: [],
           style: { width: 190, height: 160, fillColor: 'transparent' },
         },
@@ -294,11 +385,11 @@ export const BLOCK_LIBRARY_TABS: BlockLibraryTab[] = [
         tab: 'shapes',
         nodeType: 'shape-parallelogram',
         label: 'Parallelogram',
-        description: 'Parallelogram primitive with centered label.',
-        iconName: 'input',
+        description: 'Parallelogram primitive.',
+        iconName: 'parallelogram',
         preview: '▱',
         defaultData: {
-          label: 'IO',
+          label: '',
           tags: [],
           style: { width: 230, height: 140, fillColor: 'transparent' },
         },
@@ -310,10 +401,10 @@ export const BLOCK_LIBRARY_TABS: BlockLibraryTab[] = [
         nodeType: 'shape-cylinder',
         label: 'Cylinder',
         description: 'Database-style cylinder primitive.',
-        iconName: 'database',
+        iconName: 'cylinder',
         preview: '⟂',
         defaultData: {
-          label: 'DB',
+          label: '',
           tags: [],
           style: { width: 220, height: 170, fillColor: 'transparent' },
         },
@@ -325,10 +416,10 @@ export const BLOCK_LIBRARY_TABS: BlockLibraryTab[] = [
         nodeType: 'shape-arrow-rectangle',
         label: 'Arrow Rectangle',
         description: 'Rectangle with arrow head.',
-        iconName: 'arrow',
+        iconName: 'arrowRectangle',
         preview: '➜',
         defaultData: {
-          label: 'Next',
+          label: '',
           tags: [],
           style: { width: 250, height: 120, fillColor: 'transparent' },
         },
@@ -340,7 +431,7 @@ export const BLOCK_LIBRARY_TABS: BlockLibraryTab[] = [
         nodeType: 'shape-plus',
         label: 'Plus',
         description: 'Plus primitive (often non-connectable).',
-        iconName: 'icon',
+        iconName: 'plus',
         preview: '+',
         defaultData: {
           label: '',

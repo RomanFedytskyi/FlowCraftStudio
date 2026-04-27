@@ -3,7 +3,6 @@ import {
   IconCopy,
   IconLayersOff,
   IconFolders,
-  IconPalette,
   IconPlus,
   IconTrash,
 } from '@tabler/icons-react';
@@ -18,6 +17,7 @@ import {
 import clsx from 'clsx';
 import { memo } from 'react';
 
+import { ToolbarQuickFillPicker } from '@components/diagram/ToolbarQuickFillPicker';
 import { Badge } from '@components/ui/Badge';
 import { Tooltip } from '@components/ui/Tooltip';
 
@@ -30,8 +30,9 @@ import {
   resolveNodeBorderColor,
 } from '@utils/diagram';
 import { createId } from '@utils/id';
+import { duplicateShortcutLabel } from '@utils/platform';
 
-import type { DiagramNodeData, DiagramNodeType } from '../../../types/diagram';
+import type { DiagramNodeData } from '../../../types/diagram';
 import type { CSSProperties } from 'react';
 
 export interface FlowNodeData extends DiagramNodeData {
@@ -49,22 +50,18 @@ export interface FlowNodeData extends DiagramNodeData {
   onDuplicate?: (nodeId: string) => void;
   onFocus?: (nodeId: string) => void;
   onBringToFront?: (nodeId: string) => void;
-  onQuickColor?: (nodeId: string) => void;
+  onQuickColor?: (nodeId: string, color: string) => void;
   onGroup?: (nodeId: string) => void;
 }
 
 function IconGlyph({
   iconName,
-  nodeType,
   className,
 }: {
-  iconName?: string;
-  nodeType: DiagramNodeType;
+  iconName: string;
   className: string;
 }) {
-  const resolvedIconName = iconName ?? getNodeDefinition(nodeType).iconName;
-
-  return renderIcon(resolvedIconName, { className, strokeWidth: 1.8 });
+  return renderIcon(iconName, { className, strokeWidth: 1.8 });
 }
 
 type HandleKind = 'source' | 'target';
@@ -114,11 +111,10 @@ function FlowHandle({
       type={type}
       position={position}
       style={style}
+      data-testid={`diagram-handle-${nodeId}-${handleId}-${type}`}
       className={clsx(
-        '!z-20 !h-3 !w-3 !border-2 !bg-canvas transition',
-        selected
-          ? '!border-primary !opacity-100'
-          : '!border-border !opacity-70',
+        '!z-20 !h-4 !w-4 !min-h-[16px] !min-w-[16px] !border-2 !border-handle !bg-canvas !opacity-100 transition duration-fast ease-out-expo',
+        selected ? '!border-primary' : '!shadow-sm',
         snap === 'valid' &&
           '!border-success !opacity-100 !shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-success)_45%,transparent)]',
         snap === 'invalid' &&
@@ -176,7 +172,7 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
   const isEmptyBodyLabel =
     labelText.trim() === '' && (isTextLike || isNoteKind);
   const isLightweight = definition.lightweight || isTextLike;
-  const connectable = definition.connectable !== false && !isGroup;
+  const connectable = definition.connectable !== false;
   const backgroundColor = resolveNodeBackgroundColor(
     flowData.style?.backgroundColor,
   );
@@ -203,6 +199,17 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
   const hasBox = !isLightweight || wantsTextBox;
   const isCircleCompact = nodeType === 'circle-compact';
   const isSvgShape = nodeType === 'svg-shape';
+
+  /** `null`/cleared → no corner icon; otherwise falls back to type defaults when unset */
+  const cornerGlyphIcon =
+    flowData.icon === null || flowData.icon === ''
+      ? null
+      : isTextBlock
+        ? (flowData.icon ?? 'typography')
+        : (flowData.icon ?? definition.iconName ?? null);
+
+  const showCornerGlyph =
+    Boolean(cornerGlyphIcon) && !isCircleCompact && !isSvgShape && !isGroup;
 
   const patch = (patchData: Partial<DiagramNodeData>) =>
     flowData.onPatchData?.(id, patchData);
@@ -232,8 +239,9 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
   return (
     <div
       className={clsx(
-        'flowcraft-node-shell relative transition',
+        'flowcraft-node-shell relative transition duration-fast ease-out-expo',
         isCircleCompact ? 'rounded-full' : 'rounded-xl',
+        isGroup && 'flex h-full min-h-0 flex-col',
         !isGroup && !isTextLike && !isCircleCompact && 'min-w-[228px]',
         isCircleCompact &&
           'flex h-full min-h-0 w-full min-w-0 items-center justify-center',
@@ -241,14 +249,17 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
         hasBox &&
           (isTextLike
             ? 'px-3 py-2'
-            : isCircleCompact
-              ? 'p-2'
-              : isSvgShape
-                ? 'p-0'
-                : 'p-3'),
+            : isGroup
+              ? 'p-0'
+              : isCircleCompact
+                ? 'p-2'
+                : isSvgShape
+                  ? 'p-0'
+                  : 'p-3'),
+        hasBox && !isLightweight && !selected && 'shadow-node hover:shadow-md',
         !hasBox && isTextLike && 'px-2 py-1',
         isIconOnly && 'border p-4',
-        selected && !isLightweight && 'ring-2 ring-primary/25',
+        selected && !isLightweight && 'ring-2 ring-primary/35 shadow-lg',
         flowData.isIntersecting && 'ring-2 ring-danger/40',
         flowData.isSearchMatch && 'ring-2 ring-accent/30',
       )}
@@ -267,66 +278,93 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
       onDoubleClick={() => flowData.onStartEdit?.(id)}
     >
       {selected ? (
-        <NodeToolbar isVisible={Boolean(selected)} position={Position.Top}>
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-background-elevated px-2 py-2 shadow-card">
-            <button
-              type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
-              aria-label="Duplicate"
-              onClick={() => flowData.onDuplicate?.(id)}
-              data-testid={`node-toolbar-duplicate-${id}`}
+        <NodeToolbar
+          isVisible={Boolean(selected)}
+          position={Position.Top}
+          className="nodrag nopan !z-[200]"
+          data-testid={`node-toolbar-root-${id}`}
+        >
+          <div
+            className="nodrag nopan flex items-center gap-2 rounded-xl border border-border bg-background-elevated px-2 py-2 shadow-card"
+            data-testid={`node-toolbar-actions-${id}`}
+          >
+            <Tooltip
+              content={`Duplicate · ${duplicateShortcutLabel()}`}
+              compact
+              delayMs={280}
             >
-              <IconCopy className="h-5 w-5" stroke={1.9} aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-danger-soft hover:text-danger-text"
-              aria-label="Delete"
-              onClick={() => flowData.onDelete?.(id)}
-              data-testid={`node-toolbar-delete-${id}`}
+              <button
+                type="button"
+                className="nodrag nopan flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
+                aria-label="Duplicate"
+                onClick={() => flowData.onDuplicate?.(id)}
+                data-testid={`node-toolbar-duplicate-${id}`}
+              >
+                <IconCopy className="h-5 w-5" stroke={1.9} aria-hidden />
+              </button>
+            </Tooltip>
+            <Tooltip content="Delete from diagram" compact delayMs={280}>
+              <button
+                type="button"
+                className="nodrag nopan flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-danger-soft hover:text-danger-text"
+                aria-label="Delete"
+                onClick={() => flowData.onDelete?.(id)}
+                data-testid={`node-toolbar-delete-${id}`}
+              >
+                <IconTrash className="h-5 w-5" stroke={1.9} aria-hidden />
+              </button>
+            </Tooltip>
+            <Tooltip content="Center view on this node" compact delayMs={280}>
+              <button
+                type="button"
+                className="nodrag nopan flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
+                aria-label="Focus node"
+                onClick={() => flowData.onFocus?.(id)}
+                data-testid={`node-toolbar-focus-${id}`}
+              >
+                <IconArrowsMaximize
+                  className="h-5 w-5"
+                  stroke={1.9}
+                  aria-hidden
+                />
+              </button>
+            </Tooltip>
+            <Tooltip
+              content="Bring in front of overlapping nodes"
+              compact
+              delayMs={280}
             >
-              <IconTrash className="h-5 w-5" stroke={1.9} aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
-              aria-label="Focus node"
-              onClick={() => flowData.onFocus?.(id)}
-              data-testid={`node-toolbar-focus-${id}`}
+              <button
+                type="button"
+                className="nodrag nopan flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
+                aria-label="Bring to front"
+                onClick={() => flowData.onBringToFront?.(id)}
+                data-testid={`node-toolbar-front-${id}`}
+              >
+                <IconLayersOff className="h-5 w-5" stroke={1.9} aria-hidden />
+              </button>
+            </Tooltip>
+            <ToolbarQuickFillPicker
+              nodeId={id}
+              onSelectColor={(nodeId, color) =>
+                flowData.onQuickColor?.(nodeId, color)
+              }
+            />
+            <Tooltip
+              content="Group with other selected nodes"
+              compact
+              delayMs={280}
             >
-              <IconArrowsMaximize
-                className="h-5 w-5"
-                stroke={1.9}
-                aria-hidden
-              />
-            </button>
-            <button
-              type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
-              aria-label="Bring to front"
-              onClick={() => flowData.onBringToFront?.(id)}
-              data-testid={`node-toolbar-front-${id}`}
-            >
-              <IconLayersOff className="h-5 w-5" stroke={1.9} aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
-              aria-label="Quick color"
-              onClick={() => flowData.onQuickColor?.(id)}
-              data-testid={`node-toolbar-color-${id}`}
-            >
-              <IconPalette className="h-5 w-5" stroke={1.9} aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
-              aria-label="Group"
-              onClick={() => flowData.onGroup?.(id)}
-              data-testid={`node-toolbar-group-${id}`}
-            >
-              <IconFolders className="h-5 w-5" stroke={1.9} aria-hidden />
-            </button>
+              <button
+                type="button"
+                className="nodrag nopan flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
+                aria-label="Group"
+                onClick={() => flowData.onGroup?.(id)}
+                data-testid={`node-toolbar-group-${id}`}
+              >
+                <IconFolders className="h-5 w-5" stroke={1.9} aria-hidden />
+              </button>
+            </Tooltip>
           </div>
         </NodeToolbar>
       ) : null}
@@ -370,7 +408,7 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
             />
           ))
         : null}
-      {!isCircleCompact && !isSvgShape ? (
+      {showCornerGlyph ? (
         <span
           className={clsx(
             'pointer-events-none absolute z-[2] flex shrink-0 items-center justify-center rounded-lg',
@@ -386,10 +424,7 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
           aria-hidden
         >
           <IconGlyph
-            iconName={
-              isTextBlock ? (flowData.icon ?? 'typography') : flowData.icon
-            }
-            nodeType={nodeType}
+            iconName={cornerGlyphIcon as string}
             className={isTextLike ? 'h-4 w-4' : 'h-[18px] w-[18px]'}
           />
         </span>
@@ -397,13 +432,55 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
       <div
         className={clsx(
           'relative z-0 space-y-3',
-          !isCircleCompact && !isSvgShape && 'pr-11 pt-1',
+          !isCircleCompact &&
+            !isSvgShape &&
+            !isGroup &&
+            (showCornerGlyph ? 'pr-11 pt-1' : 'pt-1'),
+          isGroup && 'flex min-h-0 min-w-0 flex-1 flex-col space-y-0',
           isTextLike && 'space-y-1',
           isIconOnly && 'flex min-w-[168px] flex-col items-stretch text-center',
           isCircleCompact && 'flex min-h-0 flex-1 flex-col',
         )}
       >
-        {isCustomInput ? (
+        {isGroup ? (
+          <>
+            <div className="nodrag shrink-0 border-b border-border/55 px-3 pb-2 pt-2">
+              {flowData.isEditing ? (
+                <textarea
+                  defaultValue={labelText}
+                  rows={Math.max(2, String(flowData.label).split('\n').length)}
+                  className="w-full resize-none rounded-md border border-border bg-surface px-2 py-2 text-left text-sm font-semibold text-text outline-none ring-2 ring-primary/25"
+                  onBlur={(event) =>
+                    flowData.onFinishEdit?.(id, event.target.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      event.currentTarget.blur();
+                    }
+                    if (
+                      event.key === 'Enter' &&
+                      (event.metaKey || event.ctrlKey)
+                    ) {
+                      flowData.onFinishEdit?.(id, event.currentTarget.value);
+                    }
+                  }}
+                  data-testid={`flow-node-input-${id}`}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="nodrag w-full rounded-md px-1 py-0.5 text-left text-sm font-semibold text-text transition hover:bg-surface-hover/80"
+                  onClick={() => flowData.onStartEdit?.(id)}
+                  data-testid={`flow-node-label-${id}`}
+                >
+                  {labelText.trim() || 'Group'}
+                </button>
+              )}
+            </div>
+            <div className="min-h-8 flex-1" aria-hidden />
+          </>
+        ) : null}
+        {!isGroup && isCustomInput ? (
           <div className="space-y-3">
             {inputFields.map((field) => (
               <label key={field.id} className="block space-y-1">
@@ -448,7 +525,7 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
           </div>
         ) : null}
 
-        {isCounter ? (
+        {!isGroup && isCounter ? (
           <div className="space-y-2">
             <p className="text-sm font-semibold text-text">
               {String(flowData.label || 'Counter')}
@@ -479,7 +556,7 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
           </div>
         ) : null}
 
-        {isArchitecture ? (
+        {!isGroup && isArchitecture ? (
           <div className="space-y-1">
             <p className="text-sm font-semibold text-text">
               {String(flowData.label || 'Service')}
@@ -509,7 +586,7 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
           </div>
         ) : null}
 
-        {isCircleCompact ? (
+        {!isGroup && isCircleCompact ? (
           <div className="flex max-h-full max-w-full flex-1 flex-col items-center justify-center overflow-hidden px-2">
             <span
               className="text-center text-lg font-semibold leading-tight break-words text-text"
@@ -522,7 +599,7 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
           </div>
         ) : null}
 
-        {isSvgShape ? (
+        {!isGroup && isSvgShape ? (
           <div className="relative min-h-[120px] w-full flex-1">
             <div className="absolute inset-0 overflow-hidden rounded-xl">
               <svg
@@ -571,18 +648,18 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
             ) : null}
           </div>
         ) : null}
-        {!usesCustomBody && !isTextLike ? (
+        {!isGroup && !usesCustomBody && !isTextLike ? (
           !isNoteKind ? (
             <div className="flex min-h-8 items-start">
-              <Badge tone={isGroup ? 'accent' : 'default'}>{badgeTitle}</Badge>
+              <Badge tone="default">{badgeTitle}</Badge>
             </div>
           ) : null
-        ) : !usesCustomBody && !isTextBlock ? (
+        ) : !isGroup && !usesCustomBody && !isTextBlock ? (
           <div className="min-h-7 text-left text-xs font-medium uppercase tracking-[0.18em] text-text-muted">
             {badgeTitle}
           </div>
         ) : null}
-        {!usesCustomBody ? (
+        {!isGroup && !usesCustomBody ? (
           flowData.isEditing ? (
             <textarea
               defaultValue={labelText}
@@ -632,8 +709,10 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
         {Array.isArray(flowData.tags) && flowData.tags.length > 0 ? (
           <div
             className={clsx(
-              'flex flex-wrap gap-1.5 pt-1',
-              isTextLike && 'pt-0',
+              'flex flex-wrap gap-1.5',
+              isGroup
+                ? 'nodrag mt-auto shrink-0 border-t border-border/50 px-3 pb-3 pt-2'
+                : clsx('pt-1', isTextLike && 'pt-0'),
             )}
             data-testid={`flow-node-tags-${id}`}
           >

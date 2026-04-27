@@ -202,4 +202,37 @@ test.describe('editor', () => {
     await page.getByTestId(`node-toolbar-delete-${firstId}`).click();
     await expect(page.locator('[data-testid^="diagram-node-"]')).toHaveCount(1);
   });
+
+  test('user adds annotation helper node without handles and persists styled text', async ({
+    page,
+  }) => {
+    await page.getByTestId('library-item-annotation-plain-text').click();
+
+    const node = page.locator('[data-testid^="diagram-node-"]').first();
+    await expect(node).toBeVisible();
+
+    await expect(node.locator('.react-flow__handle')).toHaveCount(0);
+
+    await clickDiagramNode(page, node);
+    await page
+      .getByTestId('properties-node-label-input')
+      .fill('Hello annotation');
+    await page.getByTestId('properties-tab-style').click();
+    await page.getByTestId('properties-helper-font-size').fill('20');
+
+    await page
+      .getByTestId('diagram-name-input')
+      .fill('Diagram With Annotation');
+    await page.getByTestId('manual-save-button').click();
+    await expect(page.getByTestId('save-status-toolbar')).toContainText(
+      'Saved',
+      {
+        timeout: 15000,
+      },
+    );
+
+    await page.reload();
+    await expect(page.getByTestId('react-flow-wrapper')).toBeVisible();
+    await expect(page.getByText('Hello annotation')).toBeVisible();
+  });
 });

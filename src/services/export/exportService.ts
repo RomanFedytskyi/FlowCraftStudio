@@ -72,6 +72,10 @@ function removeEditorArtifacts(root: HTMLElement, includeBackground: boolean) {
     root.querySelectorAll(selector).forEach((element) => element.remove());
   });
 
+  root.querySelectorAll('[data-export-remove]').forEach((element) => {
+    element.remove();
+  });
+
   if (!includeBackground) {
     root.querySelectorAll('.react-flow__background').forEach((element) => {
       element.remove();

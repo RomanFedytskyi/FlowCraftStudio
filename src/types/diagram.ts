@@ -51,7 +51,15 @@ export type DiagramNodeType =
   | 'shape-cylinder'
   | 'shape-arrow-rectangle'
   | 'shape-plus'
-  | 'shape-cloud';
+  | 'shape-cloud'
+  | 'helper';
+
+export type HelperAnnotationKind =
+  | 'plain-text'
+  | 'section-title'
+  | 'caption'
+  | 'small-label'
+  | 'callout';
 
 export type DiagramNodeKind =
   | 'flow'
@@ -59,7 +67,8 @@ export type DiagramNodeKind =
   | 'text'
   | 'note'
   | 'icon'
-  | 'group';
+  | 'group'
+  | 'helper';
 
 export type DiagramEdgeType =
   | 'default'
@@ -79,6 +88,9 @@ export interface DiagramComment {
   createdAt: string;
 }
 
+export type HelperFontWeight = 'normal' | 'medium' | 'semibold' | 'bold';
+export type HelperTextAlign = 'left' | 'center' | 'right';
+
 export interface DiagramNodeStyle {
   /** Shape fill (preferred for primitive shapes). */
   fillColor?: string;
@@ -88,6 +100,15 @@ export interface DiagramNodeStyle {
   borderStyle?: 'solid' | 'dashed' | 'dotted';
   textColor?: string;
   fontSize?: number;
+  /** Helper / annotation nodes */
+  fontWeight?: HelperFontWeight;
+  textAlign?: HelperTextAlign;
+  /** When true, \`backgroundColor\` fills behind helper text */
+  backgroundEnabled?: boolean;
+  opacity?: number;
+  textTransform?: 'none' | 'uppercase';
+  letterSpacing?: string;
+  fontStyle?: 'normal' | 'italic';
   width?: number;
   height?: number;
   rotation?: number;
@@ -102,11 +123,16 @@ export type DiagramViewport = {
 export type DiagramNodeData = {
   label: string;
   type: DiagramNodeType;
+  /** Annotation helpers — preset typography variant. */
+  helperType?: HelperAnnotationKind;
+  /** When true, shows a small type hint on the helper node. */
+  showHelperTypeBadge?: boolean;
   /** When set, shown in the node badge instead of the built-in type label. */
   badgeLabel?: string;
   subtitle?: string;
   kind?: DiagramNodeKind;
-  icon?: string;
+  /** Set to `null` when the user clears the icon (hide corner glyph). Omit or use string for an icon id. */
+  icon?: string | null;
   value?: string | number;
   shape?:
     | 'circle'

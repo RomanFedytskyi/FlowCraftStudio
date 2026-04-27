@@ -3,6 +3,7 @@ import {
   applyEdgeChanges,
   applyNodeChanges,
   Background,
+  BackgroundVariant,
   Controls,
   MiniMap,
   ReactFlow,
@@ -11,6 +12,7 @@ import {
   reconnectEdge,
   useReactFlow,
   useViewport,
+  ViewportPortal,
   type Connection,
   type EdgeChange,
   type NodeChange,
@@ -32,6 +34,7 @@ import {
 } from '@pages/DiagramEditorPage/components/FlowNode';
 import { KeyboardShortcutsModal } from '@pages/DiagramEditorPage/components/KeyboardShortcutsModal';
 
+import { HelperAnnotationNode } from '@components/diagram/nodes/HelperAnnotationNode';
 import { ShapePrimitiveNode } from '@components/diagram/nodes/shapes/ShapePrimitiveNode';
 
 import {
@@ -66,7 +69,7 @@ import {
   pushHistory,
   redoHistory,
   selectSingleNode,
-  snapNodePosition,
+  snapValue,
   type DiagramHistoryState,
   type DiagramSnapshot,
   type SnapGuides,
@@ -151,6 +154,7 @@ const nodeTypes: NodeTypes = {
   'shape-arrow-rectangle': ShapePrimitiveNode,
   'shape-plus': ShapePrimitiveNode,
   'shape-cloud': ShapePrimitiveNode,
+  helper: HelperAnnotationNode,
 };
 
 const edgeTypes = {
@@ -360,20 +364,21 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
               return { ...snapshot, nodes: [node, ...next] };
             });
           },
-          onQuickColor: (nodeId: string) => {
+          onQuickColor: (nodeId: string, color: string) => {
             applySnapshot((snapshot) => {
               const current = snapshot.nodes.find((n) => n.id === nodeId);
-              const currentBg = String(
-                current?.data.style?.backgroundColor ?? 'transparent',
-              );
+              if (!current) {
+                return snapshot;
+              }
+              const isPrimitiveShape =
+                typeof current.type === 'string' &&
+                current.type.startsWith('shape-');
+              const stylePatch = isPrimitiveShape
+                ? { fillColor: color }
+                : { backgroundColor: color };
               return {
                 ...snapshot,
-                nodes: updateNodeStyle(snapshot.nodes, nodeId, {
-                  backgroundColor:
-                    currentBg === 'primary-soft'
-                      ? 'transparent'
-                      : 'primary-soft',
-                }),
+                nodes: updateNodeStyle(snapshot.nodes, nodeId, stylePatch),
               };
             });
           },
@@ -415,14 +420,47 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
             applySnapshot(
               (snapshot) => ({
                 ...snapshot,
-                nodes: snapshot.nodes.map((current) =>
-                  current.id === nodeId
-                    ? {
-                        ...current,
-                        data: { ...current.data, ...patch },
-                      }
-                    : current,
-                ),
+                nodes: snapshot.nodes.map((current) => {
+                  if (current.id !== nodeId) {
+                    return current;
+                  }
+
+                  const mergedStyle =
+                    patch.style !== undefined
+                      ? { ...(current.data.style ?? {}), ...patch.style }
+                      : current.data.style;
+
+                  const nextData: DiagramNodeData = {
+                    ...current.data,
+                    ...patch,
+                    ...(mergedStyle !== undefined
+                      ? { style: mergedStyle }
+                      : {}),
+                  };
+
+                  let nextNodeWrapperStyle = { ...(current.style ?? {}) };
+                  const w = mergedStyle?.width;
+                  const h = mergedStyle?.height;
+                  if (typeof w === 'number' && Number.isFinite(w)) {
+                    nextNodeWrapperStyle = {
+                      ...nextNodeWrapperStyle,
+                      width: w,
+                    };
+                  }
+                  if (typeof h === 'number' && Number.isFinite(h)) {
+                    nextNodeWrapperStyle = {
+                      ...nextNodeWrapperStyle,
+                      height: h,
+                      minHeight: h,
+                    };
+                  }
+
+                  return {
+                    ...current,
+                    style: nextNodeWrapperStyle,
+                    data: nextData,
+                  };
+                }),
               }),
               { recordHistory: options?.recordHistory ?? false },
             );
@@ -550,6 +588,8 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
         style: item.defaultData?.style,
         tags: item.defaultData?.tags ?? [],
         badgeLabel: item.defaultData?.badgeLabel,
+        helperType: item.defaultData?.helperType,
+        showHelperTypeBadge: item.defaultData?.showHelperTypeBadge,
       });
     },
     [handleAddNode],
@@ -580,72 +620,126 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
 
   const handleNodeChanges = useCallback(
     (changes: NodeChange<DiagramNode>[]) => {
+      const effectiveChanges = snapToGrid
+        ? changes.map((change) => {
+            if (
+              change.type === 'position' &&
+              change.position &&
+              typeof change.position.x === 'number' &&
+              typeof change.position.y === 'number'
+            ) {
+              return {
+                ...change,
+                position: {
+                  x: snapValue(change.position.x),
+                  y: snapValue(change.position.y),
+                },
+              };
+            }
+            return change;
+          })
+        : changes;
+
       applySnapshot(
         (snapshot) => ({
           ...snapshot,
-          nodes: applyNodeChanges(changes, snapshot.nodes).map((node) => {
-            if (
-              typeof node.type !== 'string' ||
-              !node.type.startsWith('shape-')
-            ) {
-              return node;
-            }
+          nodes: applyNodeChanges(effectiveChanges, snapshot.nodes).map(
+            (node) => {
+              if (node.type === 'helper') {
+                const width = Number(node.width ?? node.style?.width);
+                const height = Number(
+                  node.height ?? node.style?.height ?? node.style?.minHeight,
+                );
 
-            const width = Number(node.width ?? node.style?.width);
-            const height = Number(
-              node.height ?? node.style?.height ?? node.style?.minHeight,
-            );
+                if (!Number.isFinite(width) && !Number.isFinite(height)) {
+                  return node;
+                }
 
-            if (!Number.isFinite(width) && !Number.isFinite(height)) {
-              return node;
-            }
+                const nextStyle = { ...(node.data.style ?? {}) };
 
-            const nextStyle = { ...(node.data.style ?? {}) };
+                if (Number.isFinite(width)) {
+                  nextStyle.width = width;
+                }
+                if (Number.isFinite(height)) {
+                  nextStyle.height = height;
+                }
 
-            if (node.type === 'shape-circle') {
-              const size = Math.max(
-                96,
-                Number.isFinite(width) ? width : 0,
-                Number.isFinite(height) ? height : 0,
+                return {
+                  ...node,
+                  style: {
+                    ...(node.style ?? {}),
+                    ...(Number.isFinite(width) ? { width } : {}),
+                    ...(Number.isFinite(height)
+                      ? { height, minHeight: height }
+                      : {}),
+                  },
+                  data: { ...node.data, style: nextStyle },
+                };
+              }
+
+              if (
+                typeof node.type !== 'string' ||
+                !node.type.startsWith('shape-')
+              ) {
+                return node;
+              }
+
+              const width = Number(node.width ?? node.style?.width);
+              const height = Number(
+                node.height ?? node.style?.height ?? node.style?.minHeight,
               );
-              nextStyle.width = size;
-              nextStyle.height = size;
+
+              if (!Number.isFinite(width) && !Number.isFinite(height)) {
+                return node;
+              }
+
+              const nextStyle = { ...(node.data.style ?? {}) };
+
+              if (node.type === 'shape-circle') {
+                const size = Math.max(
+                  96,
+                  Number.isFinite(width) ? width : 0,
+                  Number.isFinite(height) ? height : 0,
+                );
+                nextStyle.width = size;
+                nextStyle.height = size;
+                return {
+                  ...node,
+                  style: {
+                    ...(node.style ?? {}),
+                    width: size,
+                    height: size,
+                    minHeight: size,
+                  },
+                  data: { ...node.data, style: nextStyle },
+                };
+              }
+
+              if (Number.isFinite(width)) {
+                nextStyle.width = width;
+              }
+              if (Number.isFinite(height)) {
+                nextStyle.height = height;
+              }
+
               return {
                 ...node,
                 style: {
                   ...(node.style ?? {}),
-                  width: size,
-                  height: size,
-                  minHeight: size,
+                  ...(Number.isFinite(width) ? { width } : {}),
+                  ...(Number.isFinite(height)
+                    ? { height, minHeight: height }
+                    : {}),
                 },
                 data: { ...node.data, style: nextStyle },
               };
-            }
-
-            if (Number.isFinite(width)) {
-              nextStyle.width = width;
-            }
-            if (Number.isFinite(height)) {
-              nextStyle.height = height;
-            }
-
-            return {
-              ...node,
-              style: {
-                ...(node.style ?? {}),
-                ...(Number.isFinite(width) ? { width } : {}),
-                ...(Number.isFinite(height)
-                  ? { height, minHeight: height }
-                  : {}),
-              },
-              data: { ...node.data, style: nextStyle },
-            };
-          }),
+            },
+          ),
         }),
         { recordHistory: false },
       );
     },
-    [applySnapshot],
+    [applySnapshot, snapToGrid],
   );
 
   const handleEdgeChanges = useCallback(
@@ -823,9 +917,11 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
   const handleNodeDrag = useCallback(
     (_event: React.MouseEvent, draggingNode: DiagramNode) => {
       const wrapper = canvasRef.current;
-      const nextPosition = snapToGrid
-        ? snapNodePosition(draggingNode, present.nodes)
-        : draggingNode.position;
+      const nodesWithDragPosition = present.nodes.map((node) =>
+        node.id === draggingNode.id
+          ? { ...node, position: draggingNode.position }
+          : node,
+      );
       const nextGuides = snapToGrid
         ? getSnapGuides(draggingNode, present.nodes)
         : { vertical: [] as number[], horizontal: [] as number[] };
@@ -844,33 +940,11 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
         setScreenGuides({ vertical: [], horizontal: [] });
       }
 
-      applySnapshot(
-        (snapshot) => ({
-          ...snapshot,
-          nodes: snapshot.nodes.map((node) =>
-            node.id === draggingNode.id
-              ? {
-                  ...node,
-                  position: nextPosition,
-                }
-              : node,
-          ),
-        }),
-        { recordHistory: false },
-      );
-
       setIntersectingNodeIds(
-        detectNodeIntersections(
-          present.nodes.map((node) =>
-            node.id === draggingNode.id
-              ? { ...node, position: nextPosition }
-              : node,
-          ),
-          draggingNode.id,
-        ),
+        detectNodeIntersections(nodesWithDragPosition, draggingNode.id),
       );
     },
-    [applySnapshot, present.nodes, reactFlow, snapToGrid],
+    [present.nodes, reactFlow, snapToGrid],
   );
 
   const handleNodeDragStop = useCallback(() => {
@@ -1043,7 +1117,7 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
   );
 
   const handleNodeIconChange = useCallback(
-    (icon?: string) => {
+    (icon?: string | null) => {
       if (!selectedNode) {
         return;
       }
@@ -1416,11 +1490,14 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
             <MiniMap pannable zoomable />
             <Controls />
             {showGrid ? (
-              <Background
-                color="var(--color-canvas-grid)"
-                gap={DEFAULT_GRID_SIZE}
-                size={1}
-              />
+              <ViewportPortal>
+                <Background
+                  variant={BackgroundVariant.Dots}
+                  color="var(--color-canvas-grid)"
+                  gap={DEFAULT_GRID_SIZE}
+                  size={3.5}
+                />
+              </ViewportPortal>
             ) : null}
           </ReactFlow>
           {present.nodes.length === 0 ? (

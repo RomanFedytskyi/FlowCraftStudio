@@ -13,6 +13,7 @@ import {
   getNodeDefinition,
   type DiagramNodeDefinition,
 } from '@configs/diagramNodes';
+import { getHelperDefaultStyle } from '@configs/helperAnnotation.config';
 
 import { createId } from '@utils/id';
 
@@ -147,6 +148,13 @@ export const NODE_BORDER_OPTIONS: Array<{
 
 export const DEFAULT_GROUP_WIDTH = 504;
 export const DEFAULT_GROUP_HEIGHT = 336;
+
+/** Horizontal inset between group frame and children (flow coords). */
+export const GROUP_FRAME_PADDING_X = 24;
+/** Space above children for the title strip + gap (flow coords). */
+export const GROUP_FRAME_PADDING_TOP = 48;
+export const GROUP_FRAME_PADDING_BOTTOM = 24;
+
 export const DEFAULT_GRID_SIZE = 29;
 export const DEFAULT_FONT_SIZE = 17;
 export const EXPORT_PADDING_PX = 43;
@@ -160,6 +168,44 @@ export function resolveNodeBackgroundColor(color?: string) {
     NODE_BACKGROUND_PRESETS[color as keyof typeof NODE_BACKGROUND_PRESETS] ??
     color
   );
+}
+
+const PRIMARY_SOFT_HEX = NODE_BACKGROUND_PRESETS['primary-soft'];
+
+/** Toolbar “quick color” for card nodes: toggles soft primary vs transparent. */
+export function nextQuickBackgroundStyle(
+  style: DiagramNodeStyle | undefined,
+): Pick<DiagramNodeStyle, 'backgroundColor'> {
+  const raw = String(style?.backgroundColor ?? 'transparent');
+  if (raw === 'transparent' || raw === '') {
+    return { backgroundColor: 'primary-soft' };
+  }
+  const resolved = resolveNodeBackgroundColor(
+    raw === 'transparent' ? undefined : raw,
+  );
+  if (raw === 'primary-soft' || resolved === PRIMARY_SOFT_HEX) {
+    return { backgroundColor: 'transparent' };
+  }
+  return { backgroundColor: 'primary-soft' };
+}
+
+/** Toolbar “quick color” for primitive shapes (fill takes precedence over background). */
+export function nextQuickFillStyle(
+  style: DiagramNodeStyle | undefined,
+): Pick<DiagramNodeStyle, 'fillColor'> {
+  const raw = String(
+    style?.fillColor ?? style?.backgroundColor ?? 'transparent',
+  );
+  if (raw === 'transparent' || raw === '') {
+    return { fillColor: 'primary-soft' };
+  }
+  const resolved = resolveNodeBackgroundColor(
+    raw === 'transparent' ? undefined : raw,
+  );
+  if (raw === 'primary-soft' || resolved === PRIMARY_SOFT_HEX) {
+    return { fillColor: 'transparent' };
+  }
+  return { fillColor: 'primary-soft' };
 }
 
 export function resolveNodeBorderColor(color?: string) {
@@ -294,6 +340,17 @@ function getNodeSizeConfig(definition: DiagramNodeDefinition) {
     };
   }
 
+  if (definition.kind === 'helper') {
+    return {
+      minWidth: 80,
+      minHeight: 24,
+      maxWidth: 960,
+      maxHeight: 840,
+      paddingX: 20,
+      paddingY: 16,
+    };
+  }
+
   if (definition.kind === 'text') {
     return {
       minWidth: 168,
@@ -407,10 +464,23 @@ export function createNode(
   const index = nodes.length;
   const definition = getNodeDefinition(nodeType);
   const label = dataPatch?.label ?? definition.defaultLabel;
-  const style = {
+
+  let mergedStyle: DiagramNodeStyle = {
     ...inferNodeStyle(nodeType),
-    ...dataPatch?.style,
+    ...(dataPatch?.style ?? {}),
   };
+  if (nodeType === 'helper') {
+    const ht = dataPatch?.helperType ?? 'plain-text';
+    mergedStyle = {
+      ...getHelperDefaultStyle(ht),
+      ...mergedStyle,
+    };
+  }
+
+  const icon =
+    nodeType === 'helper'
+      ? undefined
+      : (dataPatch?.icon ?? definition.iconName);
 
   const node: DiagramNode = {
     id: createId('node'),
@@ -427,12 +497,18 @@ export function createNode(
       label,
       type: nodeType,
       kind: definition.kind,
-      icon: dataPatch?.icon ?? definition.iconName,
+      icon,
       tags: dataPatch?.tags ?? [],
-      style,
       comments: [],
       needsReview: false,
       ...dataPatch,
+      style: mergedStyle,
+      ...(nodeType === 'helper'
+        ? {
+            helperType: dataPatch?.helperType ?? 'plain-text',
+            icon: undefined,
+          }
+        : {}),
     },
     style:
       nodeType === 'group'
@@ -443,16 +519,20 @@ export function createNode(
         : nodeType === 'circle-compact'
           ? clampCircleNodeStyle(
               autoSizeNodeStyle(label, nodeType, {
-                ...(style.fontSize ? { fontSize: style.fontSize } : {}),
+                ...(mergedStyle.fontSize
+                  ? { fontSize: mergedStyle.fontSize }
+                  : {}),
               }),
             )
           : autoSizeNodeStyle(label, nodeType, {
-              ...(style.fontSize ? { fontSize: style.fontSize } : {}),
+              ...(mergedStyle.fontSize
+                ? { fontSize: mergedStyle.fontSize }
+                : {}),
             }),
   };
 
-  const width = Number(dataPatch?.style?.width ?? style.width);
-  const height = Number(dataPatch?.style?.height ?? style.height);
+  const width = Number(dataPatch?.style?.width ?? mergedStyle.width);
+  const height = Number(dataPatch?.style?.height ?? mergedStyle.height);
 
   if (Number.isFinite(width) || Number.isFinite(height)) {
     node.style = {
@@ -464,6 +544,10 @@ export function createNode(
 
   if (nodeType === 'circle-compact') {
     node.style = clampCircleNodeStyle(node.style);
+  }
+
+  if (nodeType === 'helper') {
+    node.connectable = false;
   }
 
   return node;
@@ -809,12 +893,19 @@ export function updateNodeTags(
 export function updateNodeIcon(
   nodes: DiagramNode[],
   nodeId: string,
-  icon?: string,
+  icon?: string | null,
 ) {
-  return updateNodeData(nodes, nodeId, (current) => ({
-    ...current,
-    icon,
-  }));
+  return updateNodeData(nodes, nodeId, (current) => {
+    const next = { ...current };
+    if (icon === null) {
+      next.icon = null;
+    } else if (icon === undefined) {
+      delete next.icon;
+    } else {
+      next.icon = icon;
+    }
+    return next;
+  });
 }
 
 export function updateNodeBadgeLabel(
@@ -960,22 +1051,74 @@ export function redoHistory(history: DiagramHistoryState): DiagramHistoryState {
   };
 }
 
+const SELECTION_FALLBACK_WIDTH = 220;
+const SELECTION_FALLBACK_HEIGHT = 106;
+
+function readPositiveStyleDim(
+  style: Record<string, unknown> | undefined,
+  keys: readonly string[],
+): number | undefined {
+  if (!style) {
+    return undefined;
+  }
+
+  for (const key of keys) {
+    const raw = style[key];
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) {
+      return n;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Best-effort outer size for bounds (prefers React Flow measured width/height).
+ */
+export function getNodeMeasuredDimensions(node: DiagramNode): {
+  width: number;
+  height: number;
+} {
+  const measuredW = Number(node.width);
+  const measuredH = Number(node.height);
+  const nodeStyle = node.style as Record<string, unknown> | undefined;
+  const dataStyle = node.data.style as Record<string, unknown> | undefined;
+
+  const width =
+    Number.isFinite(measuredW) && measuredW > 0
+      ? measuredW
+      : (readPositiveStyleDim(nodeStyle, ['width']) ??
+        readPositiveStyleDim(dataStyle, ['width']) ??
+        SELECTION_FALLBACK_WIDTH);
+
+  const height =
+    Number.isFinite(measuredH) && measuredH > 0
+      ? measuredH
+      : (readPositiveStyleDim(nodeStyle, ['height', 'minHeight']) ??
+        readPositiveStyleDim(dataStyle, ['height', 'minHeight']) ??
+        SELECTION_FALLBACK_HEIGHT);
+
+  return { width, height };
+}
+
 export function getSelectionBounds(selectedNodes: DiagramNode[]) {
   if (selectedNodes.length === 0) {
     return null;
   }
 
-  const xValues = selectedNodes.map((node) => node.position.x);
-  const yValues = selectedNodes.map((node) => node.position.y);
-  const widths = selectedNodes.map((node) => Number(node.style?.width ?? 220));
-  const heights = selectedNodes.map((node) =>
-    Number(node.style?.minHeight ?? 96),
-  );
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
 
-  const minX = Math.min(...xValues);
-  const minY = Math.min(...yValues);
-  const maxX = Math.max(...xValues.map((x, index) => x + widths[index]));
-  const maxY = Math.max(...yValues.map((y, index) => y + heights[index]));
+  for (const node of selectedNodes) {
+    const { width, height } = getNodeMeasuredDimensions(node);
+    minX = Math.min(minX, node.position.x);
+    minY = Math.min(minY, node.position.y);
+    maxX = Math.max(maxX, node.position.x + width);
+    maxY = Math.max(maxY, node.position.y + height);
+  }
 
   return {
     x: minX,
@@ -1001,14 +1144,35 @@ export function groupNodes(
     return nodes;
   }
 
-  const groupNode = createNode(nodes, 'group', {
-    x: bounds.x - 36,
-    y: bounds.y - 52,
-  });
+  const padX = GROUP_FRAME_PADDING_X;
+  const padTop = GROUP_FRAME_PADDING_TOP;
+  const padBottom = GROUP_FRAME_PADDING_BOTTOM;
+
+  const groupNode = createNode(
+    nodes,
+    'group',
+    {
+      x: bounds.x - padX,
+      y: bounds.y - padTop,
+    },
+    { label: 'Group' },
+  );
+
+  const frameWidth = bounds.width + padX * 2;
+  const frameHeight = bounds.height + padTop + padBottom;
 
   groupNode.style = {
-    width: bounds.width + 72,
-    minHeight: bounds.height + 88,
+    width: frameWidth,
+    height: frameHeight,
+    minHeight: frameHeight,
+  };
+  groupNode.data = {
+    ...groupNode.data,
+    style: {
+      ...groupNode.data.style,
+      width: frameWidth,
+      height: frameHeight,
+    },
   };
 
   const updatedNodes = nodes.map((node) => {

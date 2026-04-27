@@ -29,7 +29,7 @@ import {
   type SidebarExpandedMap,
 } from '@utils/sidebarPreferences';
 
-const SIDEBAR_TAB_ORDER = ['blocks', 'shapes'] as const;
+const SIDEBAR_TAB_ORDER = ['blocks', 'annotations', 'shapes'] as const;
 
 function defaultExpandedMap(): SidebarExpandedMap {
   return Object.fromEntries(SIDEBAR_TAB_ORDER.map((id) => [id, true]));
@@ -243,7 +243,7 @@ export function EditorSidebar({
       className="flex h-full flex-col gap-4 overflow-x-visible overflow-y-auto p-4"
       data-testid="editor-sidebar"
     >
-      <section className="space-y-2">
+      <section className="space-y-2" data-testid="editor-sidebar-intro">
         <p className="text-xs font-medium uppercase tracking-[0.3em] text-text-subtle">
           Block library
         </p>
@@ -254,7 +254,7 @@ export function EditorSidebar({
         </p>
       </section>
 
-      <div className="relative">
+      <div className="relative" data-testid="editor-sidebar-search-wrap">
         <IconSearch
           className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-text-subtle"
           stroke={1.75}
@@ -272,7 +272,10 @@ export function EditorSidebar({
       </div>
 
       {search.trim() ? (
-        <section className="space-y-2">
+        <section
+          className="space-y-2"
+          data-testid="editor-sidebar-search-results"
+        >
           <p className="text-xs font-medium text-text-muted">
             {searchResults.length} result{searchResults.length === 1 ? '' : 's'}
           </p>
@@ -296,7 +299,10 @@ export function EditorSidebar({
       ) : (
         <>
           {recentItems.length > 0 ? (
-            <section className="space-y-2">
+            <section
+              className="space-y-2"
+              data-testid="editor-sidebar-recently-used"
+            >
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-text-subtle">
                 Recently used
               </p>
@@ -314,7 +320,7 @@ export function EditorSidebar({
             </section>
           ) : null}
 
-          <div className="space-y-2">
+          <div className="space-y-2" data-testid="editor-sidebar-category-list">
             {tabsWithNodes.map((tab) => {
               const nodes = tab.items.filter(
                 (item): item is BlockLibraryNodeItem => item.kind === 'node',
@@ -370,7 +376,10 @@ export function EditorSidebar({
         </>
       )}
 
-      <section className="mt-auto space-y-3 rounded-xl border border-border bg-surface-muted p-4">
+      <section
+        className="mt-auto space-y-3 rounded-xl border border-border bg-surface-muted p-4"
+        data-testid="editor-sidebar-selection-actions"
+      >
         <div className="space-y-2 text-sm text-text-muted">
           <p
             className="flex items-center gap-2 text-text"

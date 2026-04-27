@@ -76,7 +76,7 @@ export function AppShell() {
           </div>
           <div className="flex items-center gap-3">
             <p className="hidden text-sm text-text-muted md:block">
-              Fully local. Query-driven. Ready for future backend migration.
+              Fully local. Query-driven.
             </p>
             {!isEditorRoute ? (
               <Button

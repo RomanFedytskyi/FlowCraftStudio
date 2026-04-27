@@ -17,9 +17,10 @@ export function Button({
   return (
     <button
       className={clsx(
-        'inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold shadow-soft transition',
-        'hover:-translate-y-px hover:shadow-card active:translate-y-0 active:shadow-soft',
-        'focus-visible:shadow-focus disabled:cursor-not-allowed disabled:opacity-60',
+        'inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold shadow-soft',
+        'transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-fast ease-out-expo',
+        'hover:-translate-y-px hover:shadow-card active:translate-y-0 active:shadow-soft active:shadow-focus-inner',
+        'focus-visible:shadow-focus disabled:cursor-not-allowed disabled:opacity-50',
         {
           'bg-primary text-text-inverse hover:bg-primary-hover':
             variant === 'primary',

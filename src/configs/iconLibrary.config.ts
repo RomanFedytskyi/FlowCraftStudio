@@ -3,18 +3,17 @@ import {
   IconAdjustmentsHorizontal,
   IconAlertTriangle,
   IconApi,
-  IconArrowsSplit2,
+  IconArrowForward,
+  IconArrowRightBar,
   IconBadge,
   IconBell,
   IconBolt,
   IconBookmark,
-  IconBox,
   IconBracketsContain,
   IconBriefcase,
   IconBulb,
   IconBuilding,
   IconCalendar,
-  IconCalendarStats,
   IconCamera,
   IconChartBar,
   IconChartPie,
@@ -24,8 +23,10 @@ import {
   IconClock,
   IconCloud,
   IconCode,
+  IconCircle,
   IconCoin,
   IconCreditCard,
+  IconCylinder,
   IconDatabase,
   IconDeviceDesktop,
   IconDeviceMobile,
@@ -57,14 +58,17 @@ import {
   IconMessageCircle,
   IconNote,
   IconNotebook,
+  IconOval,
   IconPackage,
   IconPencil,
   IconPhone,
   IconPhoto,
   IconPin,
   IconPlayerPlay,
+  IconPlus,
   IconQuestionMark,
   IconReceipt,
+  IconRectangle,
   IconRefresh,
   IconReport,
   IconRocket,
@@ -97,11 +101,35 @@ import {
   IconWifi,
   IconWorld,
 } from '@tabler/icons-react';
-import { createElement } from 'react';
+import { createElement, forwardRef } from 'react';
 
 import type { ComponentType, SVGProps } from 'react';
 
 export type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
+
+/** Flowchart-style parallelogram — Tabler has no dedicated shape glyph. */
+const ParallelogramGlyph = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
+  function ParallelogramGlyph(props, ref) {
+    return createElement(
+      'svg',
+      {
+        ref,
+        xmlns: 'http://www.w3.org/2000/svg',
+        viewBox: '0 0 24 24',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 2,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        ...props,
+      },
+      createElement('path', {
+        /* Same proportions as ShapePrimitiveNode parallelogram (100×100 → 24×24). */
+        d: 'M 4 2 L 23 2 L 20 22 L 1 22 Z',
+      }),
+    );
+  },
+);
 
 export const ICON_LIBRARY = {
   play: IconPlayerPlay,
@@ -115,15 +143,19 @@ export const ICON_LIBRARY = {
   document: IconFileText,
   subprocess: IconStack2,
   connector: IconRouteSquare,
-  rectangle: IconBox,
+  rectangle: IconRectangle,
   roundedRectangle: IconSquareRounded,
-  circle: IconCircleCheck,
-  ellipse: IconCalendarStats,
+  circle: IconCircle,
+  ellipse: IconOval,
   diamond: IconDiamond,
   triangle: IconTriangle,
   hexagon: IconHexagon,
   line: IconLine,
-  arrow: IconArrowsSplit2,
+  arrow: IconArrowForward,
+  arrowRectangle: IconArrowRightBar,
+  cylinder: IconCylinder,
+  parallelogram: ParallelogramGlyph,
+  plus: IconPlus,
   frame: IconBracketsContain,
   title: IconTextSize,
   heading: IconTextSize,

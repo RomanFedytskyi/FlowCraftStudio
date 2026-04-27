@@ -9,8 +9,8 @@ import { renderIcon } from '@configs/iconLibrary.config';
 import { formatIconChoiceTitle, listIconNames } from '@configs/iconMetadata';
 
 type IconSelectDropdownProps = {
-  value?: string;
-  onChange: (icon?: string) => void;
+  value?: string | null;
+  onChange: (icon: string | null | undefined) => void;
 };
 
 export function IconSelectDropdown({
@@ -113,7 +113,7 @@ export function IconSelectDropdown({
               aria-selected={!value}
               className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition hover:bg-surface-hover"
               onClick={() => {
-                onChange(undefined);
+                onChange(null);
                 setOpen(false);
               }}
               data-testid="clear-node-icon-button"

@@ -1,46 +1,147 @@
 @config "../../tailwind.config.ts";
 @import 'tailwindcss';
 
+/*
+ * Design tokens — single source for FlowCraft Studio UI.
+ * Semantic colors mirror light/dark via html.dark overrides below.
+ */
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --color-background: #f8fafc;
-  --color-background-subtle: #f1f5f9;
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.33, 1, 0.68, 1);
+  --duration-fast: 150ms;
+
+  /* Typography scale */
+  --font-size-h1: 32px;
+  --font-size-h2: 24px;
+  --font-size-h3: 20px;
+  --font-size-body: 14px;
+  --font-size-caption: 12px;
+  --line-height-h1: 1.2;
+  --line-height-heading: 1.3;
+  --line-height-body: 1.5;
+  --line-height-caption: 1.4;
+  --letter-spacing-caption: -0.005em;
+
+  /* Neutral scale (light) */
+  --color-neutral-50: #f9fafb;
+  --color-neutral-100: #f3f4f6;
+  --color-neutral-200: #e5e7eb;
+  --color-neutral-300: #d1d5db;
+  --color-neutral-400: #9ca3af;
+  --color-neutral-500: #6b7280;
+  --color-neutral-600: #4b5563;
+  --color-neutral-700: #374151;
+  --color-neutral-800: #1f2937;
+  --color-neutral-900: #111827;
+
+  /* Surfaces & text */
+  --color-background: #f5f7fa;
+  --color-background-subtle: #eef2f7;
   --color-background-elevated: #ffffff;
   --color-surface: #ffffff;
-  --color-surface-muted: #f8fafc;
-  --color-surface-hover: #f1f5f9;
-  --color-surface-selected: #eef2ff;
-  --color-border: #e2e8f0;
-  --color-border-strong: #cbd5e1;
-  --color-text: #0f172a;
-  --color-text-muted: #64748b;
-  --color-text-subtle: #94a3b8;
+  --color-surface-muted: #f5f7fa;
+  --color-surface-hover: color-mix(in srgb, var(--color-neutral-900) 6%, white);
+  --color-surface-selected: color-mix(in srgb, var(--color-primary) 10%, white);
+  --color-border: var(--color-neutral-200);
+  --color-border-strong: var(--color-neutral-300);
+  --color-text: var(--color-neutral-900);
+  --color-text-muted: var(--color-neutral-600);
+  --color-text-subtle: var(--color-neutral-500);
+  --color-text-placeholder: var(--color-neutral-600);
   --color-text-inverse: #ffffff;
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
-  --color-primary-soft: color-mix(in srgb, var(--color-primary) 12%, white);
-  --color-primary-text: #3730a3;
-  --color-accent: #7c3aed;
-  --color-accent-hover: #6d28d9;
-  --color-accent-soft: color-mix(in srgb, var(--color-accent) 12%, white);
-  --color-accent-text: #5b21b6;
-  --color-success: #10b981;
+
+  /* Brand — primary blue + teal secondary accent */
+  --color-primary: #0066ff;
+  --color-primary-hover: #0052cc;
+  --color-primary-soft: color-mix(in srgb, var(--color-primary) 14%, white);
+  --color-primary-text: #003d99;
+  --color-accent: #0891b2;
+  --color-accent-hover: #0e7490;
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 14%, white);
+  --color-accent-text: #155e75;
+
+  --color-success: #059669;
   --color-success-soft: color-mix(in srgb, var(--color-success) 14%, white);
   --color-success-text: #047857;
-  --color-warning: #f59e0b;
+  --color-warning: #d97706;
   --color-warning-soft: color-mix(in srgb, var(--color-warning) 18%, white);
   --color-warning-text: #92400e;
-  --color-danger: #ef4444;
+  --color-danger: #dc2626;
   --color-danger-soft: color-mix(in srgb, var(--color-danger) 16%, white);
-  --color-danger-text: #b91c1c;
-  --color-canvas: #ffffff;
-  --color-canvas-grid: #e2e8f0;
-  --color-canvas-node: #ffffff;
-  --color-canvas-nodeBorder: #cbd5e1;
-  --color-canvas-edge: #64748b;
-  --color-canvas-selection: var(--color-primary);
+  --color-danger-text: #991b1b;
 
-  --gradient-primary: linear-gradient(135deg, #4f46e5, #7c3aed);
+  --color-canvas: #ffffff;
+  --color-canvas-grid: var(--color-neutral-200);
+  --color-canvas-node: #ffffff;
+  --color-canvas-nodeBorder: var(--color-neutral-300);
+  --color-canvas-edge: var(--color-neutral-500);
+  --color-canvas-selection: var(--color-primary);
+  --color-handle: var(--color-primary);
+
+  --gradient-primary: linear-gradient(135deg, #0066ff, #0891b2);
+
+  /* Border radius — sm 4 / md 6 / lg 8 / xl 12 */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
+
+  /* Shadows — depth scale */
+  --shadow-none: none;
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.06);
+  --shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08);
+  --shadow-md: 0 4px 12px rgb(15 23 42 / 0.1);
+  --shadow-lg: 0 12px 40px -8px rgb(15 23 42 / 0.14);
+  --shadow-card: 0 10px 36px -14px rgb(15 23 42 / 0.12);
+  --shadow-floating: 0 24px 54px -24px rgb(15 23 42 / 0.22);
+  --shadow-node: 0 2px 4px rgb(15 23 42 / 0.1);
+  --shadow-focus: 0 0 0 2px
+    color-mix(in srgb, var(--color-primary) 40%, transparent);
+  --shadow-focus-inner: inset 0 2px 4px rgb(15 23 42 / 0.12);
+}
+
+@utility text-heading-1 {
+  font-size: var(--font-size-h1);
+  font-weight: 600;
+  line-height: var(--line-height-h1);
+}
+
+@utility text-heading-2 {
+  font-size: var(--font-size-h2);
+  font-weight: 600;
+  line-height: var(--line-height-heading);
+}
+
+@utility text-heading-3 {
+  font-size: var(--font-size-h3);
+  font-weight: 600;
+  line-height: var(--line-height-heading);
+}
+
+@utility text-body {
+  font-size: var(--font-size-body);
+  font-weight: 400;
+  line-height: var(--line-height-body);
+}
+
+@utility text-caption {
+  font-size: var(--font-size-caption);
+  font-weight: 400;
+  line-height: var(--line-height-caption);
+  letter-spacing: var(--letter-spacing-caption);
+}
+
+@utility transition-interactive {
+  transition-property:
+    color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-out-expo);
 }
 
 html {
@@ -55,56 +156,73 @@ html {
 
 html.dark {
   color-scheme: dark;
-  --color-background: #0f172a;
-  --color-background-subtle: #0b1220;
-  --color-background-elevated: #1e293b;
-  --color-surface: #111c33;
-  --color-surface-muted: #0b1220;
-  --color-surface-hover: #1e293b;
-  --color-surface-selected: #1e3a5f;
+
+  /* Core surfaces */
+  --color-background: #0b0f1a;
+  --color-background-subtle: #0f172a;
+  --color-background-elevated: #111827;
+  --color-surface: #111827;
+  --color-surface-muted: #1f2937;
+  --color-surface-hover: #374151;
+  --color-surface-selected: color-mix(
+    in srgb,
+    var(--color-primary) 18%,
+    var(--color-surface)
+  );
+
   --color-border: #334155;
   --color-border-strong: #475569;
-  --color-text: #f1f5f9;
-  --color-text-muted: #94a3b8;
-  --color-text-subtle: #64748b;
-  --color-text-inverse: #0f172a;
-  --color-primary: #8b5cf6;
-  --color-primary-hover: #a78bfa;
-  --color-primary-soft: color-mix(
-    in srgb,
-    var(--color-primary) 22%,
-    transparent
-  );
-  --color-primary-text: #ddd6fe;
-  --color-accent: #a78bfa;
-  --color-accent-hover: #c4b5fd;
-  --color-accent-soft: color-mix(in srgb, var(--color-accent) 20%, transparent);
-  --color-accent-text: #ede9fe;
-  --color-success: #10b981;
-  --color-success-soft: color-mix(
-    in srgb,
-    var(--color-success) 18%,
-    transparent
-  );
-  --color-success-text: #a7f3d0;
-  --color-warning: #f59e0b;
-  --color-warning-soft: color-mix(
-    in srgb,
-    var(--color-warning) 22%,
-    transparent
-  );
-  --color-warning-text: #fde68a;
-  --color-danger: #fb7185;
-  --color-danger-soft: color-mix(in srgb, var(--color-danger) 18%, transparent);
-  --color-danger-text: #fecdd3;
-  --color-canvas: #0b1220;
-  --color-canvas-grid: #334155;
-  --color-canvas-node: #1e293b;
-  --color-canvas-nodeBorder: #475569;
-  --color-canvas-edge: #94a3b8;
-  --color-canvas-selection: #60a5fa;
 
-  --gradient-primary: linear-gradient(135deg, #8b5cf6, #a78bfa);
+  --color-text: #e5e7eb;
+  --color-text-muted: #9ca3af;
+  --color-text-subtle: #6b7280;
+  --color-text-placeholder: #6b7280;
+  --color-text-inverse: #020617;
+
+  /* Primary — blue */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-primary-soft: #1e3a8a;
+  --color-primary-text: #93c5fd;
+
+  /* Accent — violet */
+  --color-accent: #8b5cf6;
+  --color-accent-hover: #7c3aed;
+  --color-accent-soft: #4c1d95;
+  --color-accent-text: #c4b5fd;
+
+  --color-success: #22c55e;
+  --color-success-soft: #14532d;
+  --color-success-text: #86efac;
+
+  --color-warning: #f59e0b;
+  --color-warning-soft: #78350f;
+  --color-warning-text: #fcd34d;
+
+  --color-danger: #ef4444;
+  --color-danger-soft: #7f1d1d;
+  --color-danger-text: #fca5a5;
+
+  /* Canvas */
+  --color-canvas: #0b0f1a;
+  --color-canvas-grid: #1e293b;
+  --color-canvas-node: #111827;
+  --color-canvas-nodeBorder: #475569;
+  --color-canvas-edge: #64748b;
+  --color-canvas-selection: #3b82f6;
+  --color-handle: var(--color-primary);
+
+  --gradient-primary: linear-gradient(135deg, #3b82f6, #8b5cf6);
+
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.45);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 12px 40px -8px rgb(0 0 0 / 0.55);
+  --shadow-card: 0 10px 36px -14px rgb(0 0 0 / 0.55);
+  --shadow-floating: 0 24px 54px -24px rgb(0 0 0 / 0.65);
+  --shadow-node: 0 2px 6px rgb(0 0 0 / 0.45);
+  --shadow-focus: 0 0 0 2px
+    color-mix(in srgb, var(--color-primary) 55%, transparent);
 }
 
 html,
@@ -116,6 +234,9 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  font-weight: 400;
   background-color: var(--color-background);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
@@ -140,16 +261,25 @@ html.dark ::selection {
   background-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
 }
 
+/*
+ * Keep the node layer transparent so the grid (react-flow__background, z-index: -1)
+ * stays visible. Canvas fill comes from .flowcraft-canvas (bg-canvas).
+ */
 .flowcraft-canvas .react-flow__renderer {
-  background-color: var(--color-canvas);
+  background-color: transparent;
 }
 
-.flowcraft-canvas .react-flow__background pattern {
+/* Background pattern uses fill for dots; stroke for lines/cross */
+.flowcraft-canvas .react-flow__background-pattern.dots {
+  fill: var(--color-canvas-grid);
+}
+
+.flowcraft-canvas .react-flow__background-pattern.lines,
+.flowcraft-canvas .react-flow__background-pattern.cross {
   stroke: var(--color-canvas-grid);
 }
 
 .flowcraft-canvas .react-flow__node {
-  /* Node visuals are rendered by our custom `FlowNode` component. */
   border: none;
   border-radius: 0;
   background-color: transparent;
@@ -181,21 +311,46 @@ html.dark ::selection {
 
 .flowcraft-canvas .react-flow__controls,
 .flowcraft-canvas .react-flow__minimap {
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-lg);
   background-color: var(--color-surface);
   box-shadow: var(--shadow-card);
+}
+
+.flowcraft-canvas .react-flow__minimap {
+  box-shadow: var(--shadow-md), var(--shadow-card);
+}
+
+.flowcraft-canvas .react-flow__minimap-mask {
+  fill: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.flowcraft-canvas .react-flow__minimap-node {
+  fill: var(--color-neutral-400);
+  stroke: var(--color-neutral-600);
+  stroke-width: 1;
+}
+
+html.dark .flowcraft-canvas .react-flow__minimap-node {
+  fill: var(--color-neutral-500);
+  stroke: var(--color-neutral-700);
 }
 
 .flowcraft-canvas .react-flow__controls-button {
   border-bottom-color: var(--color-border);
   background-color: var(--color-surface);
   color: var(--color-text-muted);
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-out-expo);
 }
 
 .flowcraft-canvas .react-flow__controls-button:hover {
   background-color: var(--color-surface-hover);
   color: var(--color-text);
+}
+
+.flowcraft-canvas .react-flow__controls-button:active {
+  box-shadow: var(--shadow-focus-inner);
 }
 
 .flowcraft-canvas .react-flow__controls-button svg {

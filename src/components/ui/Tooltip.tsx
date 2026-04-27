@@ -16,6 +16,8 @@ type TooltipProps = {
   delayMs?: number;
   /** When true, the wrapper is block-level so `w-full` triggers can fill. */
   block?: boolean;
+  /** Tighter padding and type — for icon buttons and dense toolbars. */
+  compact?: boolean;
   children: ReactElement<{ 'aria-describedby'?: string }>;
 };
 
@@ -23,6 +25,7 @@ export function Tooltip({
   content,
   delayMs = 500,
   block = false,
+  compact = false,
   children,
 }: TooltipProps) {
   const id = useId();
@@ -89,11 +92,21 @@ export function Tooltip({
           id={id}
           role="tooltip"
           className={clsx(
-            'pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2',
-            'rounded-2xl border border-border bg-background-elevated px-4 py-3 text-left shadow-soft',
+            'pointer-events-none absolute left-1/2 top-full -translate-x-1/2 text-left shadow-soft',
+            compact
+              ? 'z-[300] mt-1.5 max-w-[14rem] rounded-lg border border-border bg-background-elevated px-2.5 py-1'
+              : 'z-50 mt-2 rounded-2xl border border-border bg-background-elevated px-4 py-3',
             isPlainString
-              ? 'whitespace-nowrap text-xs font-medium text-text'
-              : 'max-w-[min(68rem,calc(100vw-2rem))] text-sm leading-relaxed text-text',
+              ? clsx(
+                  'whitespace-nowrap text-text',
+                  compact
+                    ? 'text-[11px] font-medium leading-tight'
+                    : 'text-xs font-medium',
+                )
+              : clsx(
+                  'max-w-[min(68rem,calc(100vw-2rem))] text-text',
+                  compact ? 'text-xs leading-snug' : 'text-sm leading-relaxed',
+                ),
           )}
         >
           {content}

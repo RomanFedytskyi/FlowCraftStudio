@@ -86,7 +86,7 @@ export interface EditorToolbarProps {
 function ToolbarDivider() {
   return (
     <span
-      className="hidden h-11 w-px shrink-0 bg-border sm:block"
+      className="hidden h-11 w-0.5 shrink-0 rounded-full bg-border-strong sm:block"
       aria-hidden
     />
   );
@@ -259,7 +259,7 @@ export function EditorToolbar({
         <Tooltip content="Diagram list">
           <Link
             to="/"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-text-muted transition duration-fast ease-out-expo hover:bg-surface-hover hover:text-text"
             data-testid="back-to-dashboard"
             aria-label="Back to dashboard"
           >
@@ -346,147 +346,165 @@ export function EditorToolbar({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3 sm:gap-3">
-        <ToolbarIconButton
-          ariaLabel={`Undo (${undoShortcutLabel()})`}
-          tooltip={`Undo — ${undoShortcutLabel()}`}
-          onClick={onUndo}
-          disabled={!canUndo}
-          icon={<IconArrowBackUp stroke={1.8} />}
-          testId="undo-button"
-        />
-        <ToolbarIconButton
-          ariaLabel={`Redo (${redoShortcutLabel()})`}
-          tooltip={`Redo — ${redoShortcutLabel()}`}
-          onClick={onRedo}
-          disabled={!canRedo}
-          icon={<IconArrowForwardUp stroke={1.8} />}
-          testId="redo-button"
-        />
+        <div
+          className="flex flex-wrap items-center gap-2 sm:gap-3"
+          role="group"
+          aria-label="History"
+        >
+          <ToolbarIconButton
+            ariaLabel={`Undo (${undoShortcutLabel()})`}
+            tooltip={`Undo — ${undoShortcutLabel()}`}
+            onClick={onUndo}
+            disabled={!canUndo}
+            icon={<IconArrowBackUp stroke={1.8} />}
+            testId="undo-button"
+          />
+          <ToolbarIconButton
+            ariaLabel={`Redo (${redoShortcutLabel()})`}
+            tooltip={`Redo — ${redoShortcutLabel()}`}
+            onClick={onRedo}
+            disabled={!canRedo}
+            icon={<IconArrowForwardUp stroke={1.8} />}
+            testId="redo-button"
+          />
+        </div>
 
         <ToolbarDivider />
 
-        <ToolbarMenu
-          label={`View (${zoomPercent}%)`}
-          icon={<IconEye />}
-          testId="toolbar-view-menu"
+        <div
+          className="flex flex-wrap items-center gap-2 sm:gap-3"
+          role="group"
+          aria-label="View and canvas"
         >
-          <div className="grid gap-1">
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
-              onClick={onZoomIn}
-              role="menuitem"
-            >
-              <span className="flex items-center gap-2">
-                <IconZoomIn className="h-5 w-5" stroke={1.8} aria-hidden />
-                Zoom in
-              </span>
-            </button>
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
-              onClick={onZoomOut}
-              role="menuitem"
-            >
-              <span className="flex items-center gap-2">
-                <IconZoomOut className="h-5 w-5" stroke={1.8} aria-hidden />
-                Zoom out
-              </span>
-            </button>
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
-              onClick={onZoomTo100}
-              role="menuitem"
-            >
-              <span className="flex items-center gap-2">
-                <IconZoomReset className="h-5 w-5" stroke={1.7} aria-hidden />
-                100% (actual size)
-              </span>
-            </button>
-            <span className="my-1 h-px bg-border" aria-hidden />
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
-              onClick={onFitView}
-              role="menuitem"
-            >
-              <span className="flex items-center gap-2">
-                <IconFocusAuto className="h-5 w-5" stroke={1.75} aria-hidden />
-                Fit to diagram
-              </span>
-            </button>
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
-              onClick={onZoomToSelection}
-              role="menuitem"
-            >
-              <span className="flex items-center gap-2">
-                <IconTargetArrow
-                  className="h-5 w-5"
-                  stroke={1.75}
-                  aria-hidden
-                />
-                Zoom to selection
-              </span>
-            </button>
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
-              onClick={onCenterSelection}
-              role="menuitem"
-            >
-              <span className="flex items-center gap-2">
-                <IconFocusCentered
-                  className="h-5 w-5"
-                  stroke={1.75}
-                  aria-hidden
-                />
-                Center on selection
-              </span>
-            </button>
-          </div>
-        </ToolbarMenu>
+          <ToolbarMenu
+            label={`View (${zoomPercent}%)`}
+            icon={<IconEye />}
+            testId="toolbar-view-menu"
+          >
+            <div className="grid gap-1">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
+                onClick={onZoomIn}
+                role="menuitem"
+              >
+                <span className="flex items-center gap-2">
+                  <IconZoomIn className="h-5 w-5" stroke={1.8} aria-hidden />
+                  Zoom in
+                </span>
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
+                onClick={onZoomOut}
+                role="menuitem"
+              >
+                <span className="flex items-center gap-2">
+                  <IconZoomOut className="h-5 w-5" stroke={1.8} aria-hidden />
+                  Zoom out
+                </span>
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
+                onClick={onZoomTo100}
+                role="menuitem"
+              >
+                <span className="flex items-center gap-2">
+                  <IconZoomReset className="h-5 w-5" stroke={1.7} aria-hidden />
+                  100% (actual size)
+                </span>
+              </button>
+              <span className="my-1 h-px bg-border" aria-hidden />
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
+                onClick={onFitView}
+                role="menuitem"
+              >
+                <span className="flex items-center gap-2">
+                  <IconFocusAuto
+                    className="h-5 w-5"
+                    stroke={1.75}
+                    aria-hidden
+                  />
+                  Fit to diagram
+                </span>
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
+                onClick={onZoomToSelection}
+                role="menuitem"
+              >
+                <span className="flex items-center gap-2">
+                  <IconTargetArrow
+                    className="h-5 w-5"
+                    stroke={1.75}
+                    aria-hidden
+                  />
+                  Zoom to selection
+                </span>
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
+                onClick={onCenterSelection}
+                role="menuitem"
+              >
+                <span className="flex items-center gap-2">
+                  <IconFocusCentered
+                    className="h-5 w-5"
+                    stroke={1.75}
+                    aria-hidden
+                  />
+                  Center on selection
+                </span>
+              </button>
+            </div>
+          </ToolbarMenu>
+
+          <ToolbarDivider />
+
+          <ToolbarMenu
+            label="Display"
+            icon={<IconToggleRight />}
+            testId="toolbar-display-menu"
+          >
+            <div className="grid gap-1">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
+                onClick={onToggleGrid}
+                role="menuitem"
+              >
+                <span className="flex items-center gap-2">
+                  <IconGrid4x4 className="h-5 w-5" stroke={1.75} aria-hidden />
+                  Grid
+                </span>
+                <span className="text-xs font-semibold text-text-muted">
+                  {showGrid ? 'On' : 'Off'}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
+                onClick={onToggleSnap}
+                role="menuitem"
+              >
+                <span className="flex items-center gap-2">
+                  <IconMagnet className="h-5 w-5" stroke={1.75} aria-hidden />
+                  Snap to grid
+                </span>
+                <span className="text-xs font-semibold text-text-muted">
+                  {snapToGrid ? 'On' : 'Off'}
+                </span>
+              </button>
+            </div>
+          </ToolbarMenu>
+        </div>
 
         <ToolbarDivider />
-
-        <ToolbarMenu
-          label="Display"
-          icon={<IconToggleRight />}
-          testId="toolbar-display-menu"
-        >
-          <div className="grid gap-1">
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
-              onClick={onToggleGrid}
-              role="menuitem"
-            >
-              <span className="flex items-center gap-2">
-                <IconGrid4x4 className="h-5 w-5" stroke={1.75} aria-hidden />
-                Grid
-              </span>
-              <span className="text-xs font-semibold text-text-muted">
-                {showGrid ? 'On' : 'Off'}
-              </span>
-            </button>
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-text transition hover:bg-surface-hover"
-              onClick={onToggleSnap}
-              role="menuitem"
-            >
-              <span className="flex items-center gap-2">
-                <IconMagnet className="h-5 w-5" stroke={1.75} aria-hidden />
-                Snap to grid
-              </span>
-              <span className="text-xs font-semibold text-text-muted">
-                {snapToGrid ? 'On' : 'Off'}
-              </span>
-            </button>
-          </div>
-        </ToolbarMenu>
 
         <ToolbarIconButton
           ariaLabel="Keyboard shortcuts"
@@ -498,31 +516,37 @@ export function EditorToolbar({
 
         <ToolbarDivider />
 
-        <ExportMenu onExport={onExport} />
+        <div
+          className="flex flex-wrap items-center gap-2 sm:ml-auto sm:gap-3"
+          role="group"
+          aria-label="Export and settings"
+        >
+          <ExportMenu onExport={onExport} />
 
-        <ToolbarIconButton
-          ariaLabel="Account settings"
-          tooltip="Account settings"
-          onClick={() => window.dispatchEvent(new Event(SETTINGS_OPEN_EVENT))}
-          icon={<IconSettings stroke={1.8} />}
-          testId="toolbar-settings-button"
-        />
-        <Tooltip content={`Save — ${saveShortcutLabel()}`}>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onSave}
-            disabled={saveStatus === 'Saved' || saveStatus === 'Saving...'}
-            aria-label={`Save (${saveShortcutLabel()})`}
-            className="h-11 min-h-11 shrink-0 px-3"
-            data-testid="manual-save-button"
-          >
-            <IconDeviceFloppy className="h-6 w-6" stroke={1.65} />
-            <span className="ml-2 hidden text-xs font-semibold sm:inline">
-              Save
-            </span>
-          </Button>
-        </Tooltip>
+          <ToolbarIconButton
+            ariaLabel="Account settings"
+            tooltip="Account settings"
+            onClick={() => window.dispatchEvent(new Event(SETTINGS_OPEN_EVENT))}
+            icon={<IconSettings stroke={1.8} />}
+            testId="toolbar-settings-button"
+          />
+          <Tooltip content={`Save — ${saveShortcutLabel()}`}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onSave}
+              disabled={saveStatus === 'Saved' || saveStatus === 'Saving...'}
+              aria-label={`Save (${saveShortcutLabel()})`}
+              className="h-11 min-h-11 shrink-0 px-3"
+              data-testid="manual-save-button"
+            >
+              <IconDeviceFloppy className="h-6 w-6" stroke={1.65} />
+              <span className="ml-2 hidden text-xs font-semibold sm:inline">
+                Save
+              </span>
+            </Button>
+          </Tooltip>
+        </div>
       </div>
     </div>
   );

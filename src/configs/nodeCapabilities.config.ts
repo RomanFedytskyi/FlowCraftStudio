@@ -45,7 +45,7 @@ export const NODE_CAPABILITIES: Record<DiagramNodeType, NodeCapabilities> = {
   info: { connectable: true, resizable: true, toolbar: true },
   checklist: { connectable: true, resizable: true, toolbar: true },
   icon: { connectable: false, toolbar: true },
-  group: { connectable: false, resizable: true, toolbar: true },
+  group: { connectable: true, resizable: true, toolbar: true },
 
   // Example-inspired node types
   'custom-input': { connectable: true, resizable: true, toolbar: true },
@@ -73,6 +73,7 @@ export const NODE_CAPABILITIES: Record<DiagramNodeType, NodeCapabilities> = {
   },
   'shape-plus': { connectable: false, resizable: true, toolbar: true },
   'shape-cloud': { connectable: true, resizable: true, toolbar: true },
+  helper: { connectable: false, resizable: true, toolbar: true },
 };
 
 export function resolveNodeCapabilities(
