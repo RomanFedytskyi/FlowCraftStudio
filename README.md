@@ -12,6 +12,7 @@
 ![localStorage](https://img.shields.io/badge/Persistence-localStorage-F59E0B)
 
 FlowCraft Studio is a production-grade local diagram editor built with React, TypeScript, Vite, Tailwind CSS, React Flow, and TanStack Query. It is intentionally designed as a real application codebase rather than a demo: page-based architecture, service boundaries, query abstraction, test coverage, and a migration-friendly persistence layer.
+<img width="1702" height="1310" alt="Screenshot 2026-04-27 at 1 31 58 PM" src="https://github.com/user-attachments/assets/86756194-9511-4ef3-88fe-efd292f8b251" />
 
 ## Project Overview
 
