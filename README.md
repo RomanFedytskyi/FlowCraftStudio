@@ -19,9 +19,11 @@ FlowCraft Studio is a production-grade local diagram editor built with React, Ty
 - Fully local application with no backend and no external APIs.
 - Versioned localStorage persistence with recovery from corrupted data.
 - Dashboard for listing, creating, renaming, duplicating, deleting, and opening diagrams.
-- Diagram editor powered by React Flow with a config-driven block library, structured nodes, text blocks, icon blocks, connection management, viewport controls, manual save, and debounced auto-save.
+- Diagram editor powered by React Flow with a config-driven block library, structured nodes, text blocks, icon blocks, connection management, viewport controls, undo/redo, manual save, and debounced auto-save.
 - Advanced edge styling with labels, line styles, widths, colors, and marker positions.
-- Clean PNG and PDF export via `html-to-image` and `jsPDF` using a diagram-only export scene.
+- Clean PNG and PDF export via `html-to-image` and `jsPDF` (lazy-loaded) using a
+  diagram-only export scene; the editor grid/dots are never part of the export
+  (optional solid or transparent background only).
 - Shared Account Settings modal with storage usage summary and future-ready theme preferences.
 
 ## Architecture
@@ -120,14 +122,12 @@ Shadow tokens:
 
 ## Block Library
 
-The editor sidebar is now a config-driven block library with tabbed navigation:
-
-- `Flow`
-- `Shapes`
-- `Text`
-- `Notes`
-- `Icons`
-- `Templates`
+The editor sidebar is a config-driven block library with collapsible categories
+(in this order): **Blocks**, **Annotations**, and **Shapes** (flow primitives and
+shape primitives on the canvas). Data also defines a **Templates** section in
+`blockLibrary.config.ts` for future or alternate entry points; see
+`src/configs/templateLibrary.config.ts` and diagram template helpers for related
+wiring.
 
 Configuration lives in:
 
@@ -267,11 +267,9 @@ Current capabilities:
 - Exposes a theme preference selector
 - Allows clearing all locally stored FlowCraft Studio data with confirmation
 
-The theme selector is intentionally future-ready:
-
-- `Light` is active today
-- `Dark` is visible but disabled
-- `System` is visible but disabled
+Theme options (**Light**, **Dark**, **System**) are all selectable. `Dark` and
+`System` apply `html.dark` and follow `prefers-color-scheme` when in system
+mode, matching the live canvas and app chrome.
 
 ## Export Functionality
 
@@ -296,8 +294,11 @@ Clean export guarantees:
 - No selection chrome
 - No toolbar or sidebar
 - No extra canvas padding beyond diagram bounds
+- No snap/grid dot pattern (`.react-flow__background` is removed from the clone;
+  the **Include background** option only toggles a flat fill vs transparent PNG)
 
-This is implemented by building a cloned diagram-only scene from the React Flow canvas layer and stripping editor-only elements before serialization.
+This is implemented by building a cloned diagram-only scene from the React Flow
+canvas layer and stripping editor-only elements before serialization.
 
 ## Storage Usage Summary
 
@@ -315,7 +316,7 @@ The current automated coverage includes:
 
 - Diagram storage service behavior
 - Account settings storage behavior
-- Diagram helpers for history, grouping, duplication, search, and export bounds
+- Diagram helpers for history (undo stack), grouping, duplication, search, and export bounds
 - Export scene cleanup logic
 - Account Settings UI components
 - Playwright flows for dashboard actions, editor interactions, export menu access, and settings
@@ -337,7 +338,7 @@ Unit tests:
 bun run test:unit
 ```
 
-E2E tests:
+E2E tests (Playwright; install browsers once per machine: `bunx playwright install` or `npx playwright install`):
 
 ```bash
 bun run test:e2e
@@ -362,7 +363,7 @@ Pre-commit:
 Pre-push:
 
 - Runs `bun run verify:full`
-- Includes lint, format check, typecheck, unit tests, production build, and Playwright e2e tests
+- Includes lint, format check, typecheck, unit tests, production build, and Playwright e2e tests (ensure `playwright install` has been run locally or the push will fail on e2e)
 
 Manual quality commands:
 
@@ -384,8 +385,7 @@ This should only be used for urgent situations when you intentionally need to by
 
 - Backend sync
 - Real-time collaboration
-- Undo/redo
-- Templates
+- Deeper template UX (e.g. sidebar or dashboard from config)
 - Import/export JSON
 - Multi-user editing
 - Full dark mode support

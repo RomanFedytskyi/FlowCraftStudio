@@ -672,9 +672,10 @@ export function EditorPropertiesPanel({
             nodeType !== 'counter' &&
             nodeType !== 'architecture' &&
             nodeType !== 'svg-shape' &&
-            nodeType !== 'group' &&
             !isPrimitiveShape ? (
-              <LabeledField label="Text">
+              <LabeledField
+                label={nodeType === 'group' ? 'Group title' : 'Text'}
+              >
                 <textarea
                   value={selectedNode.data.label}
                   onChange={(event) => onChangeNodeLabel(event.target.value)}
@@ -683,6 +684,13 @@ export function EditorPropertiesPanel({
                 />
                 <p className="text-xs text-text-muted">
                   {labelLength} character{labelLength === 1 ? '' : 's'}
+                  {nodeType === 'group' ? (
+                    <>
+                      {' '}
+                      · Shown in the group header on the canvas (same as inline
+                      edit).
+                    </>
+                  ) : null}
                 </p>
               </LabeledField>
             ) : null}
