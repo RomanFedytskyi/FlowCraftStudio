@@ -32,6 +32,8 @@ import {
 } from '@pages/DiagramEditorPage/components/FlowNode';
 import { KeyboardShortcutsModal } from '@pages/DiagramEditorPage/components/KeyboardShortcutsModal';
 
+import { ShapePrimitiveNode } from '@components/diagram/nodes/shapes/ShapePrimitiveNode';
+
 import {
   createCleanExportTarget,
   exportDiagram,
@@ -70,6 +72,7 @@ import {
   type SnapGuides,
   undoHistory,
   ungroupNodes,
+  updateNodeData,
   updateEdgeData,
   updateNodeBadgeLabel,
   updateNodeIcon,
@@ -88,6 +91,7 @@ import type {
   DiagramEdgeMarkerPosition,
   DiagramEdgeType,
   DiagramNode,
+  DiagramNodeData,
   DiagramNodeStyle,
   DiagramNodeType,
 } from '../../types/diagram';
@@ -136,6 +140,17 @@ const nodeTypes: NodeTypes = {
   'svg-shape': FlowNode,
   architecture: FlowNode,
   toolbar: FlowNode,
+  'shape-circle': ShapePrimitiveNode,
+  'shape-rectangle': ShapePrimitiveNode,
+  'shape-rounded-rectangle': ShapePrimitiveNode,
+  'shape-diamond': ShapePrimitiveNode,
+  'shape-hexagon': ShapePrimitiveNode,
+  'shape-triangle': ShapePrimitiveNode,
+  'shape-parallelogram': ShapePrimitiveNode,
+  'shape-cylinder': ShapePrimitiveNode,
+  'shape-arrow-rectangle': ShapePrimitiveNode,
+  'shape-plus': ShapePrimitiveNode,
+  'shape-cloud': ShapePrimitiveNode,
 };
 
 const edgeTypes = {
@@ -329,6 +344,20 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
               }
               const next = snapshot.nodes.filter((n) => n.id !== nodeId);
               return { ...snapshot, nodes: [...next, node] };
+            });
+          },
+          onSendToBack: (nodeId: string) => {
+            applySnapshot((snapshot) => {
+              const idx = snapshot.nodes.findIndex((n) => n.id === nodeId);
+              if (idx < 0) {
+                return snapshot;
+              }
+              const node = snapshot.nodes[idx];
+              if (!node) {
+                return snapshot;
+              }
+              const next = snapshot.nodes.filter((n) => n.id !== nodeId);
+              return { ...snapshot, nodes: [node, ...next] };
             });
           },
           onQuickColor: (nodeId: string) => {
@@ -554,7 +583,64 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
       applySnapshot(
         (snapshot) => ({
           ...snapshot,
-          nodes: applyNodeChanges(changes, snapshot.nodes),
+          nodes: applyNodeChanges(changes, snapshot.nodes).map((node) => {
+            if (
+              typeof node.type !== 'string' ||
+              !node.type.startsWith('shape-')
+            ) {
+              return node;
+            }
+
+            const width = Number(node.width ?? node.style?.width);
+            const height = Number(
+              node.height ?? node.style?.height ?? node.style?.minHeight,
+            );
+
+            if (!Number.isFinite(width) && !Number.isFinite(height)) {
+              return node;
+            }
+
+            const nextStyle = { ...(node.data.style ?? {}) };
+
+            if (node.type === 'shape-circle') {
+              const size = Math.max(
+                96,
+                Number.isFinite(width) ? width : 0,
+                Number.isFinite(height) ? height : 0,
+              );
+              nextStyle.width = size;
+              nextStyle.height = size;
+              return {
+                ...node,
+                style: {
+                  ...(node.style ?? {}),
+                  width: size,
+                  height: size,
+                  minHeight: size,
+                },
+                data: { ...node.data, style: nextStyle },
+              };
+            }
+
+            if (Number.isFinite(width)) {
+              nextStyle.width = width;
+            }
+            if (Number.isFinite(height)) {
+              nextStyle.height = height;
+            }
+
+            return {
+              ...node,
+              style: {
+                ...(node.style ?? {}),
+                ...(Number.isFinite(width) ? { width } : {}),
+                ...(Number.isFinite(height)
+                  ? { height, minHeight: height }
+                  : {}),
+              },
+              data: { ...node.data, style: nextStyle },
+            };
+          }),
         }),
         { recordHistory: false },
       );
@@ -873,6 +959,27 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
       applySnapshot((snapshot) => ({
         ...snapshot,
         nodes: updateNodeStyle(snapshot.nodes, selectedNode.id, style),
+      }));
+    },
+    [applySnapshot, selectedNode],
+  );
+
+  const handleNodeDataPatch = useCallback(
+    (patch: Partial<DiagramNodeData>) => {
+      if (!selectedNode) {
+        return;
+      }
+
+      applySnapshot((snapshot) => ({
+        ...snapshot,
+        nodes: updateNodeData(snapshot.nodes, selectedNode.id, (current) => ({
+          ...current,
+          ...patch,
+          style: {
+            ...current.style,
+            ...(patch.style ?? {}),
+          },
+        })),
       }));
     },
     [applySnapshot, selectedNode],
@@ -1348,6 +1455,7 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
               onChangeNodeTags={handleNodeTagsChange}
               onChangeNodeIcon={handleNodeIconChange}
               onChangeNodeBadgeLabel={handleNodeBadgeLabelChange}
+              onPatchNodeData={handleNodeDataPatch}
               onChangeEdgeLabel={handleEdgeLabelChange}
               onChangeEdgeStyle={handleEdgeStyleChange}
               onDeleteEdge={deleteSelectedEdge}

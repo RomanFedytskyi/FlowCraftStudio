@@ -54,6 +54,25 @@ export const NODE_CAPABILITIES: Record<DiagramNodeType, NodeCapabilities> = {
   'svg-shape': { connectable: true, resizable: true, toolbar: true },
   architecture: { connectable: true, resizable: true, toolbar: true },
   toolbar: { connectable: true, resizable: true, toolbar: true },
+  'shape-circle': { connectable: true, resizable: true, toolbar: true },
+  'shape-rectangle': { connectable: true, resizable: true, toolbar: true },
+  'shape-rounded-rectangle': {
+    connectable: true,
+    resizable: true,
+    toolbar: true,
+  },
+  'shape-diamond': { connectable: true, resizable: true, toolbar: true },
+  'shape-hexagon': { connectable: true, resizable: true, toolbar: true },
+  'shape-triangle': { connectable: true, resizable: true, toolbar: true },
+  'shape-parallelogram': { connectable: true, resizable: true, toolbar: true },
+  'shape-cylinder': { connectable: true, resizable: true, toolbar: true },
+  'shape-arrow-rectangle': {
+    connectable: true,
+    resizable: true,
+    toolbar: true,
+  },
+  'shape-plus': { connectable: false, resizable: true, toolbar: true },
+  'shape-cloud': { connectable: true, resizable: true, toolbar: true },
 };
 
 export function resolveNodeCapabilities(

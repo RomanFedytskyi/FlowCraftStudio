@@ -4,6 +4,7 @@ import {
   IconLayersOff,
   IconFolders,
   IconPalette,
+  IconPlus,
   IconTrash,
 } from '@tabler/icons-react';
 import {
@@ -18,6 +19,7 @@ import clsx from 'clsx';
 import { memo } from 'react';
 
 import { Badge } from '@components/ui/Badge';
+import { Tooltip } from '@components/ui/Tooltip';
 
 import { getNodeDefinition } from '@configs/diagramNodes';
 import { renderIcon } from '@configs/iconLibrary.config';
@@ -27,6 +29,7 @@ import {
   resolveNodeBackgroundColor,
   resolveNodeBorderColor,
 } from '@utils/diagram';
+import { createId } from '@utils/id';
 
 import type { DiagramNodeData, DiagramNodeType } from '../../../types/diagram';
 import type { CSSProperties } from 'react';
@@ -149,6 +152,17 @@ const SOURCE_HANDLES: Array<{
   { id: 'source-left', position: Position.Left, style: { top: '66%' } },
 ];
 
+const CIRCLE_HANDLES: Array<{
+  id: string;
+  position: Position;
+  style: CSSProperties;
+}> = [
+  { id: 'circle-top', position: Position.Top, style: { left: '50%' } },
+  { id: 'circle-right', position: Position.Right, style: { top: '50%' } },
+  { id: 'circle-bottom', position: Position.Bottom, style: { left: '50%' } },
+  { id: 'circle-left', position: Position.Left, style: { top: '50%' } },
+];
+
 function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
   const flowData = data as FlowNodeData;
   const nodeType = flowData.type ?? type ?? 'process';
@@ -192,21 +206,46 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
 
   const patch = (patchData: Partial<DiagramNodeData>) =>
     flowData.onPatchData?.(id, patchData);
+  const isCustomInput = nodeType === 'custom-input';
+  const isCounter = nodeType === 'counter';
+  const isArchitecture = nodeType === 'architecture';
   const usesCustomBody =
-    nodeType === 'custom-input' ||
-    nodeType === 'counter' ||
-    nodeType === 'architecture' ||
+    isCustomInput ||
+    isCounter ||
+    isArchitecture ||
     isCircleCompact ||
     isSvgShape;
+
+  const inputFields =
+    nodeType === 'custom-input'
+      ? Array.isArray(flowData.inputFields) && flowData.inputFields.length > 0
+        ? flowData.inputFields
+        : [
+            {
+              id: 'field-0',
+              label: String(flowData.label || 'Label'),
+              value: String(flowData.value ?? ''),
+            },
+          ]
+      : [];
 
   return (
     <div
       className={clsx(
         'flowcraft-node-shell relative transition',
         isCircleCompact ? 'rounded-full' : 'rounded-xl',
-        !isGroup && !isTextLike && 'min-w-[228px]',
+        !isGroup && !isTextLike && !isCircleCompact && 'min-w-[228px]',
+        isCircleCompact &&
+          'flex h-full min-h-0 w-full min-w-0 items-center justify-center',
         hasBox && 'border',
-        hasBox && (isTextLike ? 'px-3 py-2' : 'p-3'),
+        hasBox &&
+          (isTextLike
+            ? 'px-3 py-2'
+            : isCircleCompact
+              ? 'p-2'
+              : isSvgShape
+                ? 'p-0'
+                : 'p-3'),
         !hasBox && isTextLike && 'px-2 py-1',
         isIconOnly && 'border p-4',
         selected && !isLightweight && 'ring-2 ring-primary/25',
@@ -293,20 +332,38 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
       ) : null}
       {definition.resizable !== false ? (
         <NodeResizer
-          minWidth={isGroup ? 312 : isTextLike ? 144 : 216}
-          minHeight={isGroup ? 192 : isTextLike ? 48 : 106}
+          minWidth={
+            isGroup ? 312 : isCircleCompact ? 96 : isTextLike ? 144 : 216
+          }
+          minHeight={
+            isGroup ? 192 : isCircleCompact ? 96 : isTextLike ? 48 : 106
+          }
+          keepAspectRatio={isCircleCompact}
           isVisible={selected}
           lineClassName="!border-primary"
           handleClassName="!z-10 !h-3 !w-3 !border-2 !border-primary !bg-canvas"
         />
       ) : null}
       {connectable
-        ? TARGET_HANDLES.map((handle) => (
+        ? (isCircleCompact ? CIRCLE_HANDLES : TARGET_HANDLES).map((handle) => (
             <FlowHandle
               key={handle.id}
               nodeId={id}
               handleId={handle.id}
               type="target"
+              position={handle.position}
+              style={handle.style}
+              selected={Boolean(selected)}
+            />
+          ))
+        : null}
+      {connectable
+        ? (isCircleCompact ? CIRCLE_HANDLES : SOURCE_HANDLES).map((handle) => (
+            <FlowHandle
+              key={`${handle.id}-source`}
+              nodeId={id}
+              handleId={isCircleCompact ? `source-${handle.id}` : handle.id}
+              type="source"
               position={handle.position}
               style={handle.style}
               selected={Boolean(selected)}
@@ -343,40 +400,62 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
           !isCircleCompact && !isSvgShape && 'pr-11 pt-1',
           isTextLike && 'space-y-1',
           isIconOnly && 'flex min-w-[168px] flex-col items-stretch text-center',
-          isCircleCompact &&
-            'flex h-full min-h-[120px] min-w-[120px] flex-col items-center justify-center text-center',
+          isCircleCompact && 'flex min-h-0 flex-1 flex-col',
         )}
       >
-        {nodeType === 'custom-input' ? (
-          <div className="space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-text-subtle">
-              Input
+        {isCustomInput ? (
+          <div className="space-y-3">
+            {inputFields.map((field) => (
+              <label key={field.id} className="block space-y-1">
+                <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-text-subtle">
+                  {field.label || 'Field'}
+                </span>
+                <input
+                  className="nodrag w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition focus:border-primary focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-primary)_14%,transparent)]"
+                  value={field.value}
+                  onChange={(event) => {
+                    const next = inputFields.map((current) =>
+                      current.id === field.id
+                        ? { ...current, value: event.target.value }
+                        : current,
+                    );
+                    patch({ inputFields: next });
+                  }}
+                  placeholder="Value"
+                  data-testid={`flow-node-input-field-${id}-${field.id}`}
+                />
+              </label>
+            ))}
+            <div className="flex items-center justify-end">
+              <Tooltip content="Add field">
+                <button
+                  type="button"
+                  className="nodrag inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
+                  onClick={() => {
+                    const next = [
+                      ...inputFields,
+                      { id: createId('field'), label: 'Label', value: '' },
+                    ];
+                    patch({ inputFields: next });
+                  }}
+                  aria-label="Add field"
+                  data-testid={`flow-node-input-add-field-${id}`}
+                >
+                  <IconPlus className="h-5 w-5" stroke={1.9} aria-hidden />
+                </button>
+              </Tooltip>
             </div>
-            <input
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-text outline-none"
-              value={String(flowData.label ?? '')}
-              onChange={(e) => patch({ label: e.target.value })}
-              placeholder="Label"
-              data-testid={`flow-node-input-label-${id}`}
-            />
-            <input
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none"
-              value={String(flowData.value ?? '')}
-              onChange={(e) => patch({ value: e.target.value })}
-              placeholder="Value"
-              data-testid={`flow-node-input-value-${id}`}
-            />
           </div>
-        ) : nodeType === 'counter' ? (
+        ) : null}
+
+        {isCounter ? (
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="text-sm font-semibold text-text">
-                {String(flowData.label || 'Counter')}
-              </div>
-              <div className="rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-text-muted">
-                {Number(flowData.value ?? 0)}
-              </div>
-            </div>
+            <p className="text-sm font-semibold text-text">
+              {String(flowData.label || 'Counter')}
+            </p>
+            <p className="text-2xl font-semibold tabular-nums text-text">
+              {Number(flowData.value ?? 0)}
+            </p>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -398,88 +477,98 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
               </button>
             </div>
           </div>
-        ) : nodeType === 'architecture' ? (
-          <div className="space-y-2">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-surface shadow-inner">
-                <IconGlyph
-                  iconName={flowData.icon}
-                  nodeType={nodeType}
-                  className="h-7 w-7"
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="truncate text-sm font-semibold text-text">
-                    {String(flowData.label || 'Service')}
-                  </div>
-                  <span
-                    className={clsx(
-                      'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                      flowData.status === 'success' &&
-                        'bg-success-soft text-success-text',
-                      flowData.status === 'warning' &&
-                        'bg-warning-soft text-warning-text',
-                      flowData.status === 'danger' &&
-                        'bg-danger-soft text-danger-text',
-                      (!flowData.status || flowData.status === 'default') &&
-                        'bg-surface-hover text-text-muted',
-                    )}
-                  >
-                    {String(flowData.status ?? 'default')}
-                  </span>
-                </div>
-                {flowData.subtitle ? (
-                  <div className="mt-1 truncate text-xs text-text-muted">
-                    {String(flowData.subtitle)}
-                  </div>
-                ) : null}
-              </div>
-            </div>
+        ) : null}
+
+        {isArchitecture ? (
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-text">
+              {String(flowData.label || 'Service')}
+            </p>
+            {flowData.subtitle ? (
+              <p className="text-sm text-text-muted">
+                {String(flowData.subtitle)}
+              </p>
+            ) : null}
+            {flowData.status ? (
+              <span
+                className={clsx(
+                  'inline-flex w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                  flowData.status === 'success' &&
+                    'bg-success-soft text-success-text',
+                  flowData.status === 'warning' &&
+                    'bg-warning-soft text-warning-text',
+                  flowData.status === 'danger' &&
+                    'bg-danger-soft text-danger-text',
+                  flowData.status === 'default' &&
+                    'bg-surface-hover text-text-muted',
+                )}
+              >
+                {String(flowData.status)}
+              </span>
+            ) : null}
           </div>
-        ) : isCircleCompact ? (
-          <div className="flex flex-col items-center justify-center gap-2">
-            <div className="text-sm font-semibold text-text">
-              {String(flowData.label || 'Circle')}
-            </div>
-          </div>
-        ) : isSvgShape ? (
-          <div className="flex flex-col items-center justify-center gap-2">
-            <svg
-              viewBox="0 0 100 100"
-              className="h-20 w-20"
-              aria-hidden
-              focusable="false"
+        ) : null}
+
+        {isCircleCompact ? (
+          <div className="flex max-h-full max-w-full flex-1 flex-col items-center justify-center overflow-hidden px-2">
+            <span
+              className="text-center text-lg font-semibold leading-tight break-words text-text"
+              style={{
+                color: flowData.style?.textColor,
+              }}
             >
-              <path
-                d={
-                  String(flowData.value ?? 'hex') === 'diamond'
-                    ? 'M50 6 L94 50 L50 94 L6 50 Z'
-                    : String(flowData.value ?? 'hex') === 'circle'
-                      ? 'M50 8 A42 42 0 1 0 50 92 A42 42 0 1 0 50 8 Z'
-                      : 'M25 10 L75 10 L95 50 L75 90 L25 90 L5 50 Z'
-                }
-                fill={
-                  backgroundColor === 'transparent'
-                    ? 'transparent'
-                    : backgroundColor
-                }
-                stroke={
-                  borderColor === 'transparent' ? 'currentColor' : borderColor
-                }
-                strokeWidth={Math.max(1, borderWidth)}
-                strokeDasharray={
-                  borderStyle === 'dashed'
-                    ? '6 4'
-                    : borderStyle === 'dotted'
-                      ? '2 4'
-                      : undefined
-                }
-              />
-            </svg>
-            <div className="text-sm font-semibold text-text">
-              {String(flowData.label || 'Shape')}
+              {labelText}
+            </span>
+          </div>
+        ) : null}
+
+        {isSvgShape ? (
+          <div className="relative min-h-[120px] w-full flex-1">
+            <div className="absolute inset-0 overflow-hidden rounded-xl">
+              <svg
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                className="h-full w-full"
+                aria-hidden
+                focusable="false"
+              >
+                <path
+                  d={
+                    String(flowData.value ?? 'rectangle') === 'rectangle'
+                      ? 'M0 0 H100 V100 H0 Z'
+                      : String(flowData.value ?? 'rectangle') === 'diamond'
+                        ? 'M50 6 L94 50 L50 94 L6 50 Z'
+                        : String(flowData.value ?? 'rectangle') === 'triangle'
+                          ? 'M50 8 L94 92 L6 92 Z'
+                          : 'M25 10 L75 10 L95 50 L75 90 L25 90 L5 50 Z'
+                  }
+                  fill={
+                    backgroundColor === 'transparent'
+                      ? 'transparent'
+                      : backgroundColor
+                  }
+                  stroke={
+                    borderColor === 'transparent' ? 'currentColor' : borderColor
+                  }
+                  strokeWidth={Math.max(1, borderWidth)}
+                />
+                {typeof flowData.avatar === 'string' && flowData.avatar ? (
+                  <image
+                    href={flowData.avatar}
+                    x="0"
+                    y="0"
+                    width="100"
+                    height="100"
+                    preserveAspectRatio="xMidYMid slice"
+                  />
+                ) : null}
+              </svg>
             </div>
+            {labelText.trim() !== '' ? (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-3 text-center text-sm font-semibold text-text">
+                {labelText}
+              </div>
+            ) : null}
           </div>
         ) : null}
         {!usesCustomBody && !isTextLike ? (
@@ -564,19 +653,6 @@ function FlowNodeComponent({ id, type, selected, data }: NodeProps) {
           </div>
         ) : null}
       </div>
-      {connectable
-        ? SOURCE_HANDLES.map((handle) => (
-            <FlowHandle
-              key={handle.id}
-              nodeId={id}
-              handleId={handle.id}
-              type="source"
-              position={handle.position}
-              style={handle.style}
-              selected={Boolean(selected)}
-            />
-          ))
-        : null}
     </div>
   );
 }

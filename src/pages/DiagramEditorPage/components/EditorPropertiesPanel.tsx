@@ -1,10 +1,11 @@
-import { IconTrash, IconX } from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconX } from '@tabler/icons-react';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { IconSelectDropdown } from '@pages/DiagramEditorPage/components/IconSelectDropdown';
 
 import { Card } from '@components/ui/Card';
 import { Input } from '@components/ui/Input';
+import { Tooltip } from '@components/ui/Tooltip';
 
 import { NODE_COLOR_PRESETS } from '@configs/colorPresets.config';
 import { getNodeDefinition } from '@configs/diagramNodes';
@@ -30,6 +31,7 @@ import type {
   DiagramEdgeMarkerPosition,
   DiagramEdgeType,
   DiagramNode,
+  DiagramNodeData,
   DiagramNodeStyle,
 } from '../../../types/diagram';
 
@@ -42,6 +44,7 @@ export interface EditorPropertiesPanelProps {
   onChangeNodeTags: (tags: string[]) => void;
   onChangeNodeIcon: (icon?: string) => void;
   onChangeNodeBadgeLabel: (value: string | undefined) => void;
+  onPatchNodeData: (patch: Partial<DiagramNodeData>) => void;
   onChangeEdgeLabel: (label: string) => void;
   onChangeEdgeStyle: (payload: {
     edgeType?: DiagramEdgeType;
@@ -277,6 +280,7 @@ export function EditorPropertiesPanel({
   onChangeNodeTags,
   onChangeNodeIcon,
   onChangeNodeBadgeLabel,
+  onPatchNodeData,
   onChangeEdgeLabel,
   onChangeEdgeStyle,
   onDeleteEdge,
@@ -296,6 +300,8 @@ export function EditorPropertiesPanel({
 
   if (selectedNode) {
     const definition = getNodeDefinition(selectedNode.data.type);
+    const nodeType = selectedNode.data.type;
+    const isPrimitiveShape = nodeType.startsWith('shape-');
     const labelLength = selectedNode.data.label.length;
     const showsNodeTitleField =
       definition.kind !== 'note' && selectedNode.data.type !== 'text';
@@ -350,38 +356,335 @@ export function EditorPropertiesPanel({
                 </p>
               </LabeledField>
             ) : null}
-            <LabeledField label="Text">
-              <textarea
-                value={selectedNode.data.label}
-                onChange={(event) => onChangeNodeLabel(event.target.value)}
-                className="min-h-32 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text"
-                data-testid="properties-node-label-input"
-              />
-              <p className="text-xs text-text-muted">
-                {labelLength} character{labelLength === 1 ? '' : 's'}
-              </p>
-            </LabeledField>
+            {nodeType === 'custom-input' ? (
+              <>
+                <LabeledField label="Fields">
+                  <div className="space-y-3">
+                    {(Array.isArray(selectedNode.data.inputFields) &&
+                    selectedNode.data.inputFields.length > 0
+                      ? selectedNode.data.inputFields
+                      : [
+                          {
+                            id: 'field-0',
+                            label: selectedNode.data.label || 'Label',
+                            value: String(selectedNode.data.value ?? ''),
+                          },
+                        ]
+                    ).map((field, idx, all) => (
+                      <div
+                        key={field.id}
+                        className="rounded-xl border border-border bg-surface p-3"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-subtle">
+                            Field {idx + 1}
+                          </p>
+                          <button
+                            type="button"
+                            className="rounded-lg border border-border bg-surface px-2 py-1 text-xs font-semibold text-text-muted transition hover:bg-surface-hover hover:text-text"
+                            onClick={() => {
+                              const next = all.filter((f) => f.id !== field.id);
+                              onPatchNodeData({
+                                inputFields: next.length > 0 ? next : [],
+                              });
+                            }}
+                            data-testid={`properties-custom-input-remove-${field.id}`}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          <LabeledField label="Label">
+                            <Input
+                              value={field.label}
+                              onChange={(event) => {
+                                const next = all.map((f) =>
+                                  f.id === field.id
+                                    ? { ...f, label: event.target.value }
+                                    : f,
+                                );
+                                onPatchNodeData({ inputFields: next });
+                              }}
+                              data-testid={`properties-custom-input-field-label-${field.id}`}
+                            />
+                          </LabeledField>
+                          <LabeledField label="Value">
+                            <Input
+                              value={field.value}
+                              onChange={(event) => {
+                                const next = all.map((f) =>
+                                  f.id === field.id
+                                    ? { ...f, value: event.target.value }
+                                    : f,
+                                );
+                                onPatchNodeData({ inputFields: next });
+                              }}
+                              data-testid={`properties-custom-input-field-value-${field.id}`}
+                            />
+                          </LabeledField>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-end">
+                      <Tooltip content="Add field">
+                        <button
+                          type="button"
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition hover:bg-surface-hover hover:text-text"
+                          onClick={() => {
+                            const current =
+                              Array.isArray(selectedNode.data.inputFields) &&
+                              selectedNode.data.inputFields.length > 0
+                                ? selectedNode.data.inputFields
+                                : [
+                                    {
+                                      id: 'field-0',
+                                      label: selectedNode.data.label || 'Label',
+                                      value: String(
+                                        selectedNode.data.value ?? '',
+                                      ),
+                                    },
+                                  ];
+                            const next = [
+                              ...current,
+                              {
+                                id: `field-${crypto.randomUUID()}`,
+                                label: 'Label',
+                                value: '',
+                              },
+                            ];
+                            onPatchNodeData({ inputFields: next });
+                          }}
+                          aria-label="Add field"
+                          data-testid="properties-custom-input-add-field"
+                        >
+                          <IconPlus
+                            className="h-5 w-5"
+                            stroke={1.9}
+                            aria-hidden
+                          />
+                        </button>
+                      </Tooltip>
+                    </div>
+                    <p className="text-xs text-text-muted">
+                      Fields render inside the node as label + input.
+                    </p>
+                  </div>
+                </LabeledField>
+              </>
+            ) : null}
+
+            {nodeType === 'counter' ? (
+              <>
+                <LabeledField label="Label">
+                  <Input
+                    value={selectedNode.data.label}
+                    onChange={(event) => onChangeNodeLabel(event.target.value)}
+                    data-testid="properties-counter-label"
+                  />
+                </LabeledField>
+                <LabeledField label="Value">
+                  <Input
+                    type="number"
+                    value={Number(selectedNode.data.value ?? 0)}
+                    onChange={(event) =>
+                      onPatchNodeData({ value: Number(event.target.value) })
+                    }
+                    data-testid="properties-counter-value"
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-semibold text-text transition hover:bg-surface-hover"
+                      onClick={() =>
+                        onPatchNodeData({
+                          value: Number(selectedNode.data.value ?? 0) - 1,
+                        })
+                      }
+                      data-testid="properties-counter-decrement"
+                    >
+                      −1
+                    </button>
+                    <button
+                      type="button"
+                      className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-semibold text-text transition hover:bg-surface-hover"
+                      onClick={() =>
+                        onPatchNodeData({
+                          value: Number(selectedNode.data.value ?? 0) + 1,
+                        })
+                      }
+                      data-testid="properties-counter-increment"
+                    >
+                      +1
+                    </button>
+                  </div>
+                </LabeledField>
+              </>
+            ) : null}
+
+            {nodeType === 'architecture' ? (
+              <>
+                <LabeledField label="Title">
+                  <Input
+                    value={selectedNode.data.label}
+                    onChange={(event) => onChangeNodeLabel(event.target.value)}
+                    data-testid="properties-architecture-title"
+                  />
+                </LabeledField>
+                <LabeledField label="Subtitle">
+                  <Input
+                    value={selectedNode.data.subtitle ?? ''}
+                    onChange={(event) =>
+                      onPatchNodeData({
+                        subtitle:
+                          event.target.value.trim() === ''
+                            ? undefined
+                            : event.target.value,
+                      })
+                    }
+                    data-testid="properties-architecture-subtitle"
+                  />
+                </LabeledField>
+                <LabeledField label="Status">
+                  <div className="flex gap-2">
+                    {(['default', 'success', 'warning', 'danger'] as const).map(
+                      (status) => {
+                        const active =
+                          (selectedNode.data.status ?? 'default') === status;
+                        return (
+                          <button
+                            key={status}
+                            type="button"
+                            className={
+                              active
+                                ? 'flex-1 rounded-lg bg-surface px-3 py-2 text-xs font-semibold text-text shadow-soft'
+                                : 'flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-text-muted transition hover:bg-surface-hover hover:text-text'
+                            }
+                            onClick={() => onPatchNodeData({ status })}
+                            data-testid={`properties-architecture-status-${status}`}
+                          >
+                            {status}
+                          </button>
+                        );
+                      },
+                    )}
+                  </div>
+                </LabeledField>
+              </>
+            ) : null}
+
+            {nodeType === 'svg-shape' ? (
+              <>
+                <LabeledField label="Shape">
+                  <div className="flex gap-2">
+                    {(['rectangle', 'hex', 'diamond', 'triangle'] as const).map(
+                      (shape) => {
+                        const active =
+                          String(selectedNode.data.value ?? 'rectangle') ===
+                          shape;
+                        return (
+                          <button
+                            key={shape}
+                            type="button"
+                            className={
+                              active
+                                ? 'flex-1 rounded-lg bg-surface px-3 py-2 text-xs font-semibold text-text shadow-soft'
+                                : 'flex-1 rounded-lg border border-border px-3 py-2 text-xs font-medium text-text-muted transition hover:bg-surface-hover hover:text-text'
+                            }
+                            onClick={() => onPatchNodeData({ value: shape })}
+                            data-testid={`properties-svg-shape-${shape}`}
+                          >
+                            {shape}
+                          </button>
+                        );
+                      },
+                    )}
+                  </div>
+                </LabeledField>
+                <LabeledField label="Image inside shape">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="block w-full text-sm text-text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-surface file:px-3 file:py-2 file:text-sm file:font-semibold file:text-text hover:file:bg-surface-hover"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        const result =
+                          typeof reader.result === 'string'
+                            ? reader.result
+                            : '';
+                        if (result) onPatchNodeData({ avatar: result });
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                    data-testid="properties-svg-image-upload"
+                  />
+                  {selectedNode.data.avatar ? (
+                    <button
+                      type="button"
+                      className="mt-2 inline-flex items-center justify-center rounded-lg border border-border bg-surface px-3 py-2 text-xs font-semibold text-text transition hover:bg-surface-hover"
+                      onClick={() => onPatchNodeData({ avatar: undefined })}
+                      data-testid="properties-svg-image-clear"
+                    >
+                      Clear image
+                    </button>
+                  ) : null}
+                  <p className="text-xs text-text-muted">
+                    Stored locally inside the diagram and exported with PNG/PDF.
+                  </p>
+                </LabeledField>
+              </>
+            ) : null}
+
+            {nodeType !== 'custom-input' &&
+            nodeType !== 'counter' &&
+            nodeType !== 'architecture' &&
+            nodeType !== 'svg-shape' ? (
+              <LabeledField label="Text">
+                <textarea
+                  value={selectedNode.data.label}
+                  onChange={(event) => onChangeNodeLabel(event.target.value)}
+                  className="min-h-32 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text"
+                  data-testid="properties-node-label-input"
+                />
+                <p className="text-xs text-text-muted">
+                  {labelLength} character{labelLength === 1 ? '' : 's'}
+                </p>
+              </LabeledField>
+            ) : null}
           </div>
         ) : null}
 
         {nodeTab === 'style' ? (
           <div className="space-y-5">
-            <LabeledField label="Icon">
-              <IconSelectDropdown
-                value={selectedNode.data.icon}
-                onChange={onChangeNodeIcon}
-              />
-            </LabeledField>
-            <LabeledField label="Background">
+            {nodeType !== 'circle-compact' && !isPrimitiveShape ? (
+              <LabeledField label="Icon">
+                <IconSelectDropdown
+                  value={selectedNode.data.icon}
+                  onChange={onChangeNodeIcon}
+                />
+              </LabeledField>
+            ) : null}
+            <LabeledField label={isPrimitiveShape ? 'Fill' : 'Background'}>
               <ColorInput
                 value={resolveNodeBackgroundColor(
-                  selectedNode.data.style?.backgroundColor,
+                  selectedNode.data.style?.fillColor ??
+                    selectedNode.data.style?.backgroundColor,
                 )}
                 onChange={(backgroundColor) =>
-                  onChangeNodeStyle({ backgroundColor })
+                  onChangeNodeStyle(
+                    isPrimitiveShape
+                      ? { fillColor: backgroundColor }
+                      : { backgroundColor },
+                  )
                 }
                 onClear={() =>
-                  onChangeNodeStyle({ backgroundColor: 'transparent' })
+                  onChangeNodeStyle(
+                    isPrimitiveShape
+                      ? { fillColor: 'transparent' }
+                      : { backgroundColor: 'transparent' },
+                  )
                 }
                 testId="properties-node-background-color"
                 showPresets
@@ -454,6 +757,40 @@ export function EditorPropertiesPanel({
                 data-testid="properties-node-font-size-input"
               />
             </LabeledField>
+
+            {isPrimitiveShape ? (
+              <>
+                <LabeledField label="Width">
+                  <Input
+                    type="number"
+                    min={48}
+                    max={2000}
+                    value={selectedNode.data.style?.width ?? 160}
+                    onChange={(event) =>
+                      onChangeNodeStyle({ width: Number(event.target.value) })
+                    }
+                    data-testid="properties-shape-width"
+                  />
+                </LabeledField>
+                <LabeledField label="Height">
+                  <Input
+                    type="number"
+                    min={48}
+                    max={2000}
+                    value={selectedNode.data.style?.height ?? 160}
+                    onChange={(event) =>
+                      onChangeNodeStyle({ height: Number(event.target.value) })
+                    }
+                    data-testid="properties-shape-height"
+                  />
+                </LabeledField>
+                {nodeType === 'shape-circle' ? (
+                  <p className="text-xs text-text-muted">
+                    Circle keeps equal width and height.
+                  </p>
+                ) : null}
+              </>
+            ) : null}
           </div>
         ) : null}
 

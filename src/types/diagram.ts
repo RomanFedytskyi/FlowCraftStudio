@@ -40,7 +40,18 @@ export type DiagramNodeType =
   | 'circle-compact'
   | 'svg-shape'
   | 'architecture'
-  | 'toolbar';
+  | 'toolbar'
+  | 'shape-circle'
+  | 'shape-rectangle'
+  | 'shape-rounded-rectangle'
+  | 'shape-diamond'
+  | 'shape-hexagon'
+  | 'shape-triangle'
+  | 'shape-parallelogram'
+  | 'shape-cylinder'
+  | 'shape-arrow-rectangle'
+  | 'shape-plus'
+  | 'shape-cloud';
 
 export type DiagramNodeKind =
   | 'flow'
@@ -69,6 +80,8 @@ export interface DiagramComment {
 }
 
 export interface DiagramNodeStyle {
+  /** Shape fill (preferred for primitive shapes). */
+  fillColor?: string;
   backgroundColor?: string;
   borderColor?: string;
   borderWidth?: number;
@@ -95,6 +108,23 @@ export type DiagramNodeData = {
   kind?: DiagramNodeKind;
   icon?: string;
   value?: string | number;
+  shape?:
+    | 'circle'
+    | 'rectangle'
+    | 'rounded-rectangle'
+    | 'diamond'
+    | 'hexagon'
+    | 'triangle'
+    | 'parallelogram'
+    | 'cylinder'
+    | 'arrow-rectangle'
+    | 'plus'
+    | 'cloud';
+  inputFields?: Array<{
+    id: string;
+    label: string;
+    value: string;
+  }>;
   status?: 'default' | 'success' | 'warning' | 'danger';
   tags?: string[];
   style?: DiagramNodeStyle;

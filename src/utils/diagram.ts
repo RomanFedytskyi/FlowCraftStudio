@@ -376,6 +376,28 @@ export function autoSizeNodeStyle(
   };
 }
 
+function clampCircleNodeStyle(
+  existingStyle: DiagramNode['style'] | undefined,
+): DiagramNode['style'] {
+  const baseSize = 160;
+  const currentWidth = Number(existingStyle?.width ?? baseSize);
+  const currentHeight = Number(
+    existingStyle?.height ?? existingStyle?.minHeight ?? baseSize,
+  );
+  const size = Math.max(
+    96,
+    Number.isFinite(currentWidth) ? currentWidth : baseSize,
+    Number.isFinite(currentHeight) ? currentHeight : baseSize,
+  );
+
+  return {
+    ...(existingStyle ?? {}),
+    width: size,
+    height: size,
+    minHeight: size,
+  };
+}
+
 export function createNode(
   nodes: DiagramNode[],
   nodeType: DiagramNodeType = 'process',
@@ -418,9 +440,15 @@ export function createNode(
             width: DEFAULT_GROUP_WIDTH,
             minHeight: DEFAULT_GROUP_HEIGHT,
           }
-        : autoSizeNodeStyle(label, nodeType, {
-            ...(style.fontSize ? { fontSize: style.fontSize } : {}),
-          }),
+        : nodeType === 'circle-compact'
+          ? clampCircleNodeStyle(
+              autoSizeNodeStyle(label, nodeType, {
+                ...(style.fontSize ? { fontSize: style.fontSize } : {}),
+              }),
+            )
+          : autoSizeNodeStyle(label, nodeType, {
+              ...(style.fontSize ? { fontSize: style.fontSize } : {}),
+            }),
   };
 
   const width = Number(dataPatch?.style?.width ?? style.width);
@@ -432,6 +460,10 @@ export function createNode(
       ...(Number.isFinite(width) ? { width } : {}),
       ...(Number.isFinite(height) ? { height, minHeight: height } : {}),
     };
+  }
+
+  if (nodeType === 'circle-compact') {
+    node.style = clampCircleNodeStyle(node.style);
   }
 
   return node;
@@ -702,6 +734,8 @@ export function updateNodeData(
     }
 
     const nextData = updater(node.data);
+    const isPrimitiveShape =
+      typeof node.type === 'string' && node.type.startsWith('shape-');
 
     return {
       ...node,
@@ -709,16 +743,29 @@ export function updateNodeData(
       style:
         node.type === 'group'
           ? node.style
-          : autoSizeNodeStyle(
-              String(nextData.label ?? node.data.label),
-              (node.type ?? 'process') as DiagramNodeType,
-              {
-                ...node.style,
-                ...(nextData.style?.fontSize
-                  ? { fontSize: nextData.style.fontSize }
+          : isPrimitiveShape
+            ? {
+                ...(node.style ?? {}),
+                ...(typeof nextData.style?.width === 'number'
+                  ? { width: nextData.style.width }
                   : {}),
-              },
-            ),
+                ...(typeof nextData.style?.height === 'number'
+                  ? {
+                      height: nextData.style.height,
+                      minHeight: nextData.style.height,
+                    }
+                  : {}),
+              }
+            : autoSizeNodeStyle(
+                String(nextData.label ?? node.data.label),
+                (node.type ?? 'process') as DiagramNodeType,
+                {
+                  ...node.style,
+                  ...(nextData.style?.fontSize
+                    ? { fontSize: nextData.style.fontSize }
+                    : {}),
+                },
+              ),
     };
   });
 }

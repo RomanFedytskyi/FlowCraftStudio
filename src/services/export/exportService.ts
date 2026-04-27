@@ -41,6 +41,7 @@ const CLEANUP_SELECTORS = [
   '.react-flow__minimap',
   '.react-flow__attribution',
   '.react-flow__panel',
+  '.react-flow__node-toolbar',
   '.react-flow__selection',
   '.react-flow__nodesselection',
   '.react-flow__resize-control',

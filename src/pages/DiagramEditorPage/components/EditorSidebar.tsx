@@ -29,7 +29,7 @@ import {
   type SidebarExpandedMap,
 } from '@utils/sidebarPreferences';
 
-const SIDEBAR_TAB_ORDER = ['blocks'] as const;
+const SIDEBAR_TAB_ORDER = ['blocks', 'shapes'] as const;
 
 function defaultExpandedMap(): SidebarExpandedMap {
   return Object.fromEntries(SIDEBAR_TAB_ORDER.map((id) => [id, true]));
