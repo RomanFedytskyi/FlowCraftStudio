@@ -338,7 +338,9 @@ Unit tests:
 bun run test:unit
 ```
 
-E2E tests (Playwright; install browsers once per machine: `bunx playwright install` or `npx playwright install`):
+E2E tests (Playwright; **Chromium is installed automatically** via the `postinstall`
+script. If e2e reports a missing browser binary, run
+`bunx playwright install chromium` or `npx playwright install chromium` once.):
 
 ```bash
 bun run test:e2e
@@ -363,7 +365,7 @@ Pre-commit:
 Pre-push:
 
 - Runs `bun run verify:full`
-- Includes lint, format check, typecheck, unit tests, production build, and Playwright e2e tests (ensure `playwright install` has been run locally or the push will fail on e2e)
+- Includes lint, format check, typecheck, unit tests, production build, and Playwright e2e tests (requires Chromium from `postinstall` after `bun install`, or run `npx playwright install chromium` once)
 
 Manual quality commands:
 

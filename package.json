@@ -19,6 +19,7 @@
     "test:all": "vitest run && playwright test",
     "verify": "bun run lint && bun run format:check && bun run typecheck && bun run test:unit && bun run build",
     "verify:full": "bun run verify && bun run test:e2e",
+    "postinstall": "npx playwright install chromium",
     "prepare": "husky"
   },
   "repository": {

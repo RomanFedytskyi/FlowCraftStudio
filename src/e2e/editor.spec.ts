@@ -190,8 +190,15 @@ test.describe('editor', () => {
     );
     expect(nodeId).toBeTruthy();
 
-    await page.getByTestId(`node-toolbar-duplicate-${nodeId}`).click();
-    await expect(page.locator('[data-testid^="diagram-node-"]')).toHaveCount(2);
+    const duplicateBtn = page.getByTestId(`node-toolbar-duplicate-${nodeId}`);
+    await expect(duplicateBtn).toBeVisible();
+    await duplicateBtn.click();
+    await expect(page.locator('[data-testid^="diagram-node-"]')).toHaveCount(
+      2,
+      {
+        timeout: 15_000,
+      },
+    );
 
     const firstNode = page.locator('[data-testid^="diagram-node-"]').first();
     await clickDiagramNode(page, firstNode);
@@ -233,6 +240,7 @@ test.describe('editor', () => {
 
     await page.reload();
     await expect(page.getByTestId('react-flow-wrapper')).toBeVisible();
-    await expect(page.getByText('Hello annotation')).toBeVisible();
+    const restoredNode = page.locator('[data-testid^="diagram-node-"]').first();
+    await expect(restoredNode.getByText('Hello annotation')).toBeVisible();
   });
 });

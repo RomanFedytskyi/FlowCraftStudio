@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './src/e2e',
+  // One worker avoids flakiness from the shared Vite dev server and timing races.
+  workers: 1,
   fullyParallel: true,
   use: {
     baseURL: 'http://127.0.0.1:4173',
