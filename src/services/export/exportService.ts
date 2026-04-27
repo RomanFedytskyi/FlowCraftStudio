@@ -67,7 +67,7 @@ async function getPdfCtor() {
   return module.jsPDF;
 }
 
-function removeEditorArtifacts(root: HTMLElement, includeBackground: boolean) {
+function removeEditorArtifacts(root: HTMLElement) {
   CLEANUP_SELECTORS.forEach((selector) => {
     root.querySelectorAll(selector).forEach((element) => element.remove());
   });
@@ -76,11 +76,9 @@ function removeEditorArtifacts(root: HTMLElement, includeBackground: boolean) {
     element.remove();
   });
 
-  if (!includeBackground) {
-    root.querySelectorAll('.react-flow__background').forEach((element) => {
-      element.remove();
-    });
-  }
+  root.querySelectorAll('.react-flow__background').forEach((element) => {
+    element.remove();
+  });
 
   root.querySelectorAll('.selected').forEach((element) => {
     element.classList.remove('selected');
@@ -117,7 +115,7 @@ export function createCleanExportTarget({
     throw new Error('React Flow viewport not found for export.');
   }
 
-  removeEditorArtifacts(clonedRoot, includeBackground);
+  removeEditorArtifacts(clonedRoot);
 
   const wrapper = document.createElement('div');
   wrapper.className = 'flowcraft-export-scene';

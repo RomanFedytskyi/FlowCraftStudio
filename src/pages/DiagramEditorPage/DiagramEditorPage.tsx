@@ -12,7 +12,6 @@ import {
   reconnectEdge,
   useReactFlow,
   useViewport,
-  ViewportPortal,
   type Connection,
   type EdgeChange,
   type NodeChange,
@@ -1349,7 +1348,7 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
         onShowShortcuts={() => setShortcutsOpen(true)}
         onExport={handleExport}
       />
-      <div className="flex min-h-[calc(100vh-12rem)] gap-4">
+      <div className="flex min-h-[calc(100vh-12rem)] items-stretch gap-4">
         {leftSidebarOpen ? (
           <div className="w-full max-w-[384px] shrink-0">
             <EditorSidebar
@@ -1367,7 +1366,7 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
         ) : null}
         <div
           ref={canvasRef}
-          className="flowcraft-canvas relative min-w-0 flex-1 overflow-hidden rounded-2xl border border-border bg-canvas shadow-card"
+          className="flowcraft-canvas relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-canvas shadow-card"
           data-testid="react-flow-wrapper"
           onDragOver={(event) => {
             event.preventDefault();
@@ -1424,7 +1423,9 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
             ))}
           </div>
           <ReactFlow
+            className="h-full min-h-0"
             fitView
+            onlyRenderVisibleElements
             proOptions={{ hideAttribution: true }}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
@@ -1486,19 +1487,17 @@ function EditorCanvas({ diagram }: { diagram: Diagram }) {
             }}
             onMoveEnd={() => setSaveState('Unsaved changes')}
           >
+            {showGrid ? (
+              <Background
+                variant={BackgroundVariant.Dots}
+                color="var(--color-canvas-grid)"
+                gap={DEFAULT_GRID_SIZE}
+                size={3.5}
+              />
+            ) : null}
             <FlowZoomReporter onZoom={handleFlowZoom} />
             <MiniMap pannable zoomable />
             <Controls />
-            {showGrid ? (
-              <ViewportPortal>
-                <Background
-                  variant={BackgroundVariant.Dots}
-                  color="var(--color-canvas-grid)"
-                  gap={DEFAULT_GRID_SIZE}
-                  size={3.5}
-                />
-              </ViewportPortal>
-            ) : null}
           </ReactFlow>
           {present.nodes.length === 0 ? (
             <div

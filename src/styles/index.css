@@ -265,6 +265,11 @@ html.dark ::selection {
  * Keep the node layer transparent so the grid (react-flow__background, z-index: -1)
  * stays visible. Canvas fill comes from .flowcraft-canvas (bg-canvas).
  */
+.flowcraft-canvas .react-flow {
+  height: 100%;
+  min-height: 0;
+}
+
 .flowcraft-canvas .react-flow__renderer {
   background-color: transparent;
 }

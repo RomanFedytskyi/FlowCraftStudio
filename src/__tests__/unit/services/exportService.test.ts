@@ -33,6 +33,7 @@ describe('export service', () => {
     Object.defineProperty(canvasElement, 'clientHeight', { value: 640 });
     canvasElement.innerHTML = `
       <div class="react-flow">
+        <div class="react-flow__background" data-testid="export-test-grid"></div>
         <div class="react-flow__controls"></div>
         <div class="react-flow__minimap"></div>
         <div class="react-flow__viewport">
@@ -57,6 +58,7 @@ describe('export service', () => {
     expect(result.element.querySelector('.react-flow__controls')).toBeNull();
     expect(result.element.querySelector('.react-flow__minimap')).toBeNull();
     expect(result.element.querySelector('.react-flow__handle')).toBeNull();
+    expect(result.element.querySelector('.react-flow__background')).toBeNull();
 
     result.cleanup();
     canvasElement.remove();
